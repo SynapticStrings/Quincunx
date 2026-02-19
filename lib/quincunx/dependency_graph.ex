@@ -18,25 +18,34 @@ defmodule Quincunx.DependencyGraph do
 
   defmodule Edge do
     @type t :: %__MODULE__{
+            type: Orchid.Param.param_type(),
             from_node: Node.name(),
             to_node: Node.name(),
-            type: Orchid.Param.param_type(),
-            indicies: {from :: non_neg_integer(), to :: non_neg_integer()}
+            from_index: non_neg_integer(),
+            to_index: non_neg_integer()
           }
-    defstruct [:from_node, :to_node, :type, indicies: [0, 0]]
+    defstruct [:type, :from_node, :to_node, from_index: 0, to_index: 0]
   end
 
   defmodule InputPort do
+    @type t :: %__MODULE__{
+            type: Orchid.Param.param_type(),
+            to_node: Node.t(),
+            to_index: non_neg_integer()
+          }
     defstruct [:type, :to_node, :to_index]
   end
 
   defmodule OutputPort do
+    @type t :: %__MODULE__{
+            type: Orchid.Param.param_type(),
+            from_node: Node.t(),
+            from_index: non_neg_integer()
+          }
     defstruct [:type, :from_node, :from_index]
   end
 
   @type t :: any()
-  defstruct [:nodes, :edges]
-  # {Node, Edge} => OrchidSteps & Ports(from_or_to, type) # ports is orphan port
 
-  # def get_fields(=> required_inputs_fields and optional_input_fields)
+  # @spec compile([Node.t()], [Edge.t()]) :: %{input_ports: [InputPort.t()], output_ports: [OutputPort.t()], steps: any()}
 end
