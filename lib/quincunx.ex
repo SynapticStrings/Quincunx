@@ -1,18 +1,5 @@
 defmodule Quincunx do
   @moduledoc """
-  Documentation for `Quincunx`.
+  Quincunx is an incremental computing engine for heterogeneous batch data.
   """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Quincunx.hello()
-      :world
-
-  """
-  def hello do
-    :world
-  end
 end

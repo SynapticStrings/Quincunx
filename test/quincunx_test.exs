@@ -3,6 +3,6 @@ defmodule QuincunxTest do
   doctest Quincunx
 
   test "greets the world" do
-    assert Quincunx.hello() == :world
+    assert 1 + 1 == 2
   end
 end
