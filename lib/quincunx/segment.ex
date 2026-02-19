@@ -2,15 +2,16 @@ defmodule Quincunx.Segment do
   @moduledoc """
   The smallest unit for incremental generation.
   """
+  alias Quincunx.Segment, as: Seg
+  alias Quincunx.DependencyGraph
 
   @type t :: %__MODULE__{
           id: any(),
-          dependency: any(),
-          record: Quincunx.Segment.RecorderAdapter.record(),
-          cursor: Quincunx.Segment.RecorderAdapter.cursor(),
-          snapshots: %{any() => Quincunx.Segment.DependencyAdapter.snapshot()},
+          dependency: DependencyGraph.t(),
+          record: Seg.RecorderAdapter.record(),
+          cursor: Seg.RecorderAdapter.cursor(),
+          snapshots: %{any() => Seg.DependencyAdapter.snapshot()},
           recorder_adapter: module(),
-          dependency_adapter: module(),
           extra: map()
         }
   defstruct [
@@ -28,7 +29,6 @@ defmodule Quincunx.Segment do
     :snapshots,
     # 一系列的适配器
     :recorder_adapter,
-    :dependency_adapter,
     extra: %{}
   ]
 end
