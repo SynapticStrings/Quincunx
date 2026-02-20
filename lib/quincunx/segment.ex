@@ -3,11 +3,11 @@ defmodule Quincunx.Segment do
   The smallest unit for incremental generation.
   """
   alias Quincunx.Segment, as: Seg
-  alias Quincunx.DependencyGraph
+  alias Quincunx.Dependency
 
   @type t :: %__MODULE__{
           id: any(),
-          dependency: DependencyGraph.t(),
+          dependency: Dependency.t(),
           record: Seg.RecorderAdapter.record(),
           cursor: Seg.RecorderAdapter.cursor(),
           snapshots: %{any() => Seg.DependencyAdapter.snapshot()},
