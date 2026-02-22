@@ -1,34 +1,29 @@
 defmodule Quincunx.Segment do
   @moduledoc """
   The smallest unit for incremental generation.
+  It holds the static topology, user edit history, and cached runtime references.
   """
-  alias Quincunx.Segment, as: Seg
   alias Quincunx.Dependency
+  alias Quincunx.Segment.RecorderAdapter
+
+  @type snapshot :: Orchid.Scheduler.Context.param_map()
 
   @type t :: %__MODULE__{
-          id: any(),
-          dependency: Dependency.t(),
-          record: Seg.RecorderAdapter.record(),
-          cursor: Seg.RecorderAdapter.cursor(),
-          snapshots: %{any() => Seg.DependencyAdapter.snapshot()},
+          id: String.t() | atom(),
+          dependency: nil | Dependency.t(),
+          record: RecorderAdapter.record(),
+          cursor: RecorderAdapter.cursor(),
+          snapshots: snapshot(),
           recorder_adapter: module(),
           extra: map()
         }
   defstruct [
-    :id,
-    # 记录依赖图
-    # 其中最重要的是 required_inputs_fields
-    # 以及 optional_input_fields
-    :dependency,
-    # 记录此前的一系列操作
-    :record,
-    # 记录最新操作的指针（？）
-    :cursor,
-    # 上一次渲染动作后的数据
-    # 大容量数据则为 Ref
-    :snapshots,
-    # 一系列的适配器
-    :recorder_adapter,
+    id: nil,
+    dependency: nil,
+    record: [],
+    cursor: 0,
+    snapshots: %{},
+    recorder_adapter: Quincunx.Segment.LinearRecorder,
     extra: %{}
   ]
 end
