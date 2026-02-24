@@ -24,6 +24,7 @@ defmodule Quincunx.Segment.RecorderAdapter do
       data_state: %{inputs: map(), overrides: map(), offsets: map()}
     }
 
+  # TODO: {:ok, state} | {:error, reason}
   @callback push(record(), cursor(), operation() | [operation()] | %{any() => operation()}) :: {record(), cursor()}
 
   @callback undo(record(), cursor()) :: cursor()

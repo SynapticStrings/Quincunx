@@ -45,10 +45,6 @@ defmodule Quincunx.Dependency do
             to_index: non_neg_integer()
           }
     defstruct [:type, :to_node, :to_index]
-
-    # def from_node(node, idx)
-    # node.input_keys, idx -> key_type
-    # => build struct
   end
 
   defmodule OutputPort do
@@ -60,5 +56,10 @@ defmodule Quincunx.Dependency do
     defstruct [:type, :from_node, :from_index]
   end
 
-  @type t :: %{nodes: [Node.t()], edges: [Edge.t()]}
+  @type t :: %__MODULE__{nodes: [Node.t()], edges: [Edge.t()], clusters: Quincunx.Dependency.Cluster.t()}
+  defstruct [:nodes, :edges, :clusters]
+
+  def topological_sort(%__MODULE__{nodes: _nodes, edges: _edges}) do
+    []
+  end
 end
