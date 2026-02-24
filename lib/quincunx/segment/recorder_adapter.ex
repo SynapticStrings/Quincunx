@@ -13,7 +13,7 @@ defmodule Quincunx.Segment.RecorderAdapter do
           | {:remove_node, Node.t()}
           | {:add_edge, Edge.t()}
           | {:remove_edge, Edge.t()}
-          # | {:set_input, port_id :: {Node.t(), idx :: non_neg_integer()}, value :: any()}
+          | {:set_input, port_id :: {Node.t(), idx :: non_neg_integer()}, value :: any()}
 
   @type record :: any()
   @type cursor :: any()
@@ -21,10 +21,10 @@ defmodule Quincunx.Segment.RecorderAdapter do
   @doc "final state from specific snapshot(init), operations(record) and cursor."
   @type effective_state :: %{
       resolved_graph: Quincunx.Dependency.t(),
-      data_state: %{overrides: map(), offsets: map()}
+      data_state: %{inputs: map(), overrides: map(), offsets: map()}
     }
 
-  @callback push(record(), cursor(), operation()) :: {record(), cursor()}
+  @callback push(record(), cursor(), operation() | [operation()] | %{any() => operation()}) :: {record(), cursor()}
 
   @callback undo(record(), cursor()) :: cursor()
 

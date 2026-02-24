@@ -1,5 +1,6 @@
 defmodule Quincunx.Segment.LinearRecorder do
   alias Quincunx.Segment.RecorderAdapter
+  alias Quincunx.Dependency.{Edge, Node}
   @behaviour RecorderAdapter
 
   @type record :: [RecorderAdapter.operation()]
@@ -12,8 +13,8 @@ defmodule Quincunx.Segment.LinearRecorder do
   """
   @impl true
   @spec push(record(), cursor(), RecorderAdapter.operation()) :: {record(), cursor()}
-  def push(record, cursor, operation), do:
-    {Enum.take(record, cursor) ++ [operation], cursor + 1}
+  def push(record, cursor, [_ | _] = operations), do: {Enum.take(record, cursor) ++ operations, cursor + length(operations)}
+  def push(record, cursor, operation), do: {Enum.take(record, cursor) ++ [operation], cursor + 1}
 
   @doc "Move the cursor one step back."
   @impl true
@@ -32,34 +33,61 @@ defmodule Quincunx.Segment.LinearRecorder do
   This is the core functional fold (reduce) that powers the compiler.
   """
   @impl true
-  def resolve(record, cursor, _base_graph) do
-    Enum.take(record, cursor)
-    |> Enum.reduce(
-      %{inputs: %{}, overrides: %{}, offsets: %{}},
-      fn operation, state ->
-        apply_operation(operation, state)
-      end
-    )
+  def resolve(record, cursor, base_graph) do
+    {resolved_graph, data_state} =
+      record
+      |> Enum.take(cursor)
+      |> Enum.reduce(
+        {base_graph, %{inputs: %{}, overrides: %{}, offsets: %{}}},
+        fn operation, {graph, state} ->
+          apply_operation(operation, graph, state)
+        end
+      )
+
+    %{resolved_graph: resolved_graph, data_state: data_state}
   end
 
-  defp apply_operation(_op, state), do: state
+  defp apply_operation({:override, %Edge{} = edge, data}, graph, state),
+    do: {graph, put_in(state, [:overrides, edge], data)}
 
-  # defp apply_operation({:set_input, port, value}, state) do
-  #   put_in(state, [:inputs, port], value)
-  # end
+  defp apply_operation({:offset, %Edge{} = edge, offset_data}, graph, state),
+    do: {graph, put_in(state, [:offsets, edge], offset_data)}
 
-  # defp apply_operation({:override, node_id, port, ref}, state) do
-  #   put_in(state, [:overrides, {node_id, port}], ref)
-  # end
+  defp apply_operation({:undo_modify, %Edge{} = edge}, graph, state),
+    do:
+      {graph,
+       state
+       |> update_in([:overrides], &Map.delete(&1, edge))
+       |> update_in([:offsets], &Map.delete(&1, edge))}
 
-  # defp apply_operation({:remove_override, node_id, port}, state) do
-  #   {_, new_overrides} = Map.pop(state.overrides, {node_id, port})
-  #   %{state | overrides: new_overrides}
-  # end
+  defp apply_operation({:set_input, {%Node{}, idx} = loc, data}, graph, state) when idx >= 0,
+    do: {graph, put_in(state, [:inputs, loc], data)}
 
-  # defp apply_operation({:offset, node_id, port, offset_data}, state) do
-  #   update_in(state, [:offsets, {node_id, port}], fn existing ->
-  #     (existing || []) ++ [offset_data]
-  #   end)
-  # end
+  defp apply_operation({:add_node, %Node{} = node}, graph, state) do
+    new_nodes = if node in graph.nodes, do: graph.nodes, else: [node | graph.nodes]
+    {%{graph | nodes: new_nodes}, state}
+  end
+
+  defp apply_operation({:remove_node, %Node{} = node}, graph, state) do
+    new_nodes = Enum.reject(graph.nodes, &(&1.name == node.name))
+
+    new_edges =
+      Enum.reject(graph.edges, fn e ->
+        e.from_node == node.name || e.to_node == node.name
+      end)
+
+    {%{graph | nodes: new_nodes, edges: new_edges}, state}
+  end
+
+  defp apply_operation({:add_edge, %Edge{} = edge}, graph, state) do
+    new_edges = if edge in graph.edges, do: graph.edges, else: [edge | graph.edges]
+    {%{graph | edges: new_edges}, state}
+  end
+
+  defp apply_operation({:remove_edge, %Edge{} = edge}, graph, state) do
+    new_edges = Enum.reject(graph.edges, &(&1 == edge))
+    {%{graph | edges: new_edges}, state}
+  end
+
+  defp apply_operation(_op, graph, state), do: {graph, state}
 end
