@@ -17,7 +17,7 @@ defmodule Quincunx.Dependency.Cluster do
   @doc "Return `%{node_name => final_cluster_name}`"
   def paint_graph(%Dependency{clusters: clusters} = graph) do
     # 拓扑排序保证我们处理某节点时，它的上游都已经染色完毕
-    sorted_nodes = Dependency.topological_sort(graph)
+    {:ok, sorted_nodes} = Dependency.topological_sort(graph)
 
     Enum.reduce(sorted_nodes, %{}, fn node, color_map ->
       cond do
