@@ -13,7 +13,9 @@ defmodule Quincunx.Segment.LinearRecorder do
   """
   @impl true
   @spec push(record(), cursor(), RecorderAdapter.operation()) :: {record(), cursor()}
-  def push(record, cursor, [_ | _] = operations), do: {Enum.take(record, cursor) ++ operations, cursor + length(operations)}
+  def push(record, cursor, [_ | _] = operations),
+    do: {Enum.take(record, cursor) ++ operations, cursor + length(operations)}
+
   def push(record, cursor, operation), do: {Enum.take(record, cursor) ++ [operation], cursor + 1}
 
   @doc "Move the cursor one step back."

@@ -31,9 +31,9 @@ defmodule Quincunx.Dependency.Graph do
           {maybe_inputs, maybe_outputs} = solve_when_explicit_port(edges_to_inputs, node)
 
           %{
-            acc |
-            input_ports: maybe_inputs ++ acc.input_ports,
-            output_ports: maybe_outputs ++ acc.output_ports
+            acc
+            | input_ports: maybe_inputs ++ acc.input_ports,
+              output_ports: maybe_outputs ++ acc.output_ports
           }
         end
       end)

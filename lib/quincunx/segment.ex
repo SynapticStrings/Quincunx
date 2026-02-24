@@ -17,13 +17,11 @@ defmodule Quincunx.Segment do
           recorder_adapter: module(),
           extra: map()
         }
-  defstruct [
-    id: nil,
-    dependency: nil,
-    record: [],
-    cursor: 0,
-    snapshots: %{},
-    recorder_adapter: Quincunx.Segment.LinearRecorder,
-    extra: %{}
-  ]
+  defstruct id: nil,
+            dependency: nil,
+            record: [],
+            cursor: 0,
+            snapshots: %{},
+            recorder_adapter: Quincunx.Segment.LinearRecorder,
+            extra: %{}
 end

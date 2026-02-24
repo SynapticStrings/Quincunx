@@ -20,16 +20,18 @@ defmodule Quincunx.Segment.RecorderAdapter do
 
   @doc "final state from specific snapshot(init), operations(record) and cursor."
   @type effective_state :: %{
-      resolved_graph: Quincunx.Dependency.t(),
-      data_state: %{inputs: map(), overrides: map(), offsets: map()}
-    }
+          resolved_graph: Quincunx.Dependency.t(),
+          data_state: %{inputs: map(), overrides: map(), offsets: map()}
+        }
 
   # TODO: {:ok, state} | {:error, reason}
-  @callback push(record(), cursor(), operation() | [operation()] | %{any() => operation()}) :: {record(), cursor()}
+  @callback push(record(), cursor(), operation() | [operation()] | %{any() => operation()}) ::
+              {record(), cursor()}
 
   @callback undo(record(), cursor()) :: cursor()
 
   @callback redo(record(), cursor()) :: cursor()
 
-  @callback resolve(record(), cursor(), base_graph :: Quincunx.Dependency.t()) :: effective_state()
+  @callback resolve(record(), cursor(), base_graph :: Quincunx.Dependency.t()) ::
+              effective_state()
 end

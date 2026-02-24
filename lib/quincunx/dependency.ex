@@ -6,7 +6,7 @@ defmodule Quincunx.Dependency do
 
     @type t :: %__MODULE__{
             name: name(),
-            impl: Orchid.Step.implementation(),
+            impl: Orchid.Step.implementation() | any(),
             input_keys: keys_type_declare(),
             output_keys: keys_type_declare(),
             step_opts: Orchid.Step.step_options(),
@@ -56,7 +56,11 @@ defmodule Quincunx.Dependency do
     defstruct [:type, :from_node, :from_index]
   end
 
-  @type t :: %__MODULE__{nodes: [Node.t()], edges: [Edge.t()], clusters: Quincunx.Dependency.Cluster.t()}
+  @type t :: %__MODULE__{
+          nodes: [Node.t()],
+          edges: [Edge.t()],
+          clusters: Quincunx.Dependency.Cluster.t()
+        }
   defstruct [:nodes, :edges, :clusters]
 
   def topological_sort(%__MODULE__{nodes: _nodes, edges: _edges}) do
