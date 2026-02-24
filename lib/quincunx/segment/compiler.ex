@@ -1,6 +1,8 @@
 defmodule Quincunx.Segment.Compiler do
   alias Quincunx.Dependency
 
+  @spec compile(Quincunx.Dependency.t(), %{inputs: map(), overrides: map(), offsets: map()}) ::
+          nil
   def compile(%Dependency{} = _graph, _state) do
     # 1. Coloring the Nodes
   end

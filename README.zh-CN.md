@@ -26,9 +26,19 @@
 
 ## 完善 `Nodes/Edges => Orchid Recipes` 的过程
 
+实现拓扑排序：
+
+```elixir
+def topological_sort(%__MODULE__{nodes: _nodes, edges: _edges}) do
+  []
+end
+```
+
+实现编译函数本体：
+
 ```elixir
 # API
-@spec compile(Quincunx.Dependency.t()) :: %{
+@spec compile(Quincunx.Dependency.t(), %{inputs: map(), overrides: map(), offsets: map()}) :: %{
   cluster_name() | [cluster_name()] =>
   {
     [Orchid.Step.t()],
