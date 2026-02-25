@@ -19,22 +19,3 @@
 ### `Quincunx.Session`
 
 ### `Quincunx.Segment`
-
----
-
-# 目前的进度/问题
-
-## 完善 `Nodes/Edges => Orchid Recipes` 的过程
-
-实现编译函数本体：
-
-```elixir
-# API
-@spec compile(Quincunx.Dependency.t(), %{inputs: map(), overrides: map(), offsets: map()}) :: %{
-  cluster_name() | [cluster_name()] =>
-  {
-    [Orchid.Step.t()],
-    %{inputs: any(), overrides: any(), offsets: any()}
-  }
-}
-```
