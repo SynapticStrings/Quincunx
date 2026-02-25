@@ -18,11 +18,3 @@
 
 ### `Quincunx.Session`
 
-### `Quincunx.Segment`/`Lily`
-
-- 修改 `Lily.Graph` 使输入与拓扑结构解耦
-    - 使 `Lily.History` 的操作对象包含了图以及输入本体
-- 修改 `Lily.Compiler.build_recipe/4` 使输出仅与 `recipe, requires, exports` 有关
-- 修改 `Lily.Compiler.compile/2` 的入参改成图本体与 some middle state ，添加下游函数：
-    - `Enum.map(init_data, graph_middle) => recipe bundle`
-- `Quincunx.Session.Segment, Quincunx.Session.Graph`

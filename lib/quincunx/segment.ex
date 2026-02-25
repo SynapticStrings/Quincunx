@@ -5,7 +5,7 @@ defmodule Quincunx.Segment do
   """
 
   alias Lily.History.Operation
-  alias Lily.{Graph, History, Graph.Cluster}
+  alias Lily.{Graph, History, Compiler, Graph.Cluster}
 
   @type id :: atom() | String.t()
 
@@ -55,7 +55,21 @@ defmodule Quincunx.Segment do
 
   @spec compile_to_recipes(t()) :: {:error, :cycle_detected} | {:ok, list()}
   def compile_to_recipes(%__MODULE__{} = segment) do
-    History.resolve(segment.base_graph, segment.history)
-    |> Lily.Compiler.compile(segment.cluster_declara)
+    %{graph: final_graph, inputs: inputs, overrides: overrides, offsets: offsets} =
+      History.resolve(segment.base_graph, segment.history)
+
+    final_graph
+    |> Compiler.compile(segment.cluster_declara)
+    |> case do
+      {:ok, recipe} ->
+        Compiler.bind_interventions(recipe, %{
+          inputs: inputs,
+          overrides: overrides,
+          offsets: offsets
+        })
+
+      err ->
+        err
+    end
   end
 end
