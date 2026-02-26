@@ -55,21 +55,26 @@ defmodule Quincunx.Segment do
 
   @spec compile_to_recipes(t()) :: {:error, :cycle_detected} | {:ok, list()}
   def compile_to_recipes(%__MODULE__{} = segment) do
-    %{graph: final_graph, inputs: inputs, overrides: overrides, offsets: offsets} =
+    {final_graph, interventions} =
       History.resolve(segment.base_graph, segment.history)
 
     final_graph
     |> Compiler.compile(segment.cluster_declara)
     |> case do
       {:ok, recipe} ->
-        Compiler.bind_interventions(recipe, %{
-          inputs: inputs,
-          overrides: overrides,
-          offsets: offsets
-        })
+        recipe
+        |> List.wrap()
+        |> Compiler.bind_interventions(interventions)
 
       err ->
         err
     end
   end
+
+  # def compile_to_recipes([%__MODULE__{}] = segments) do
+  #   segments
+  #   |> Enum.map(&History.resolve(&1.base_graph, &1.history))
+  #   |> Enum.group_by(& &1) # via Graph
+  #   |> Enum.map(fn {graph, inputs} -> case  end)
+  # end
 end
