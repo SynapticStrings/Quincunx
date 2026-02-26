@@ -23,8 +23,8 @@ alias Lily.{Graph, Graph.Node, Graph.Edge, Graph.Cluster, History, Compiler}
 
 # 1. Build the static topology
 graph = Graph.new()
-|> Graph.add_node(%Node{id: :acoustic, impl: Acostic, inputs: [:lyrics], outputs: [:mel]})
-|> Graph.add_node(%Node{id: :vocoder, impl: Vocoder,  inputs: [:mel], outputs: [:audio]})
+|> Graph.add_node(%Node{id: :acoustic, impl: AcosticModel, inputs: [:lyrics], outputs: [:mel]})
+|> Graph.add_node(%Node{id: :vocoder, impl: LegacyWaveNetVocoder,  inputs: [:mel], outputs: [:audio]})
 |> Graph.add_edge(Edge.new(:acoustic, :mel, :vocoder, :mel))
 
 # 2. Record user interventions (e.g., overriding AI tensors via UI)
@@ -32,40 +32,17 @@ history = History.new()
 |> History.push({:override, {:port, :vocoder, :mel}, <<0, 1, "tensor_data">>})
 
 # 3. Fold history into the current effective state
-state = History.resolve(graph, history)
+{graph, interventions} = History.resolve(graph, history)
 
 # 4. Compile & Partition (Split execution to prevent VRAM overflow)
 clusters = %Cluster{node_colors: %{acoustic: :gpu_1, vocoder: :gpu_2}}
-{:ok, [recipe_1, recipe_2]} = Compiler.compile(state, clusters)
-# => recipe_1
-%{
-  exports: [:acoustic_mel],
-  requires: [:acoustic_lyrics],
-  overrides: %{},
-  offsets: %{},
-  recipe: %Orchid.Recipe{
-    steps: [{Acostic, [:acoustic_lyrics], [:acoustic_mel], []}],
-    name: :gpu_1,
-    opts: []
-  }
-}
-# => recipe_2
-%{
-  exports: [],
-  requires: [:acoustic_mel],
-  overrides: %{
-    {:port, :vocoder, :mel} => <<0, 1, 116, 101, 110, 115, 111, 114, 95, 100,
-      97, 116, 97>>
-  },
-  offsets: %{},
-  recipe: %Orchid.Recipe{
-    steps: [{Vocoder, [:acoustic_mel], [:vocoder_audio], []}],
-    name: :gpu_2,
-    opts: []
-  }
-}
-```
+{:ok, recipes} = Compiler.compile(graph, clusters)
+[bundle_1, bundle_2] = Compiler.bind_interventions(recipes, interventions)
 
+# Result: 
+# bundle_1 exports :"acoustic_mel"
+# bundle_2 requires :"acoustic_mel" and carries the user override in its `overrides`.
+```
 ---
 
 ## Source Code
@@ -124,53 +101,52 @@ defmodule Lily.Compiler do
   The final stage of the Lily pure functional pipeline.
   Translates the effective DAG into a sequence of Orchid.Recipe.
   """
-  alias Lily.Graph
+  alias Lily.{Graph, History}
   alias Lily.Graph.{Node, Portkey, Cluster}
 
-  @type port_key_name :: {:port, target_node :: Node.id(), target_port :: atom()}
+  @type port_key_name :: {:port, node_id :: Node.id(), port_name :: atom()}
 
-  @doc """
-  将有效状态和分簇策略编译为 Recipe 序列。
-  """
-  def compile(
-        %{graph: graph, overrides: global_overrides, offsets: global_offsets},
-        cluster_declara \\ %Cluster{}
-      ) do
-    # 1. 确保图是合法的，并拿到拓扑执行顺序
+  @type recipe_manifest :: %{recipe: Orchid.Recipe.t(), requires: [port_key_name()], exports: [port_key_name()]}
+
+  @spec compile(Lily.Graph.t()) :: {:error, :cycle_detected} | {:ok, [recipe_manifest()]}
+  def compile(%Graph{} = graph, cluster_declara \\ %Cluster{}) do
     case Graph.topological_sort(graph) do
       {:error, _} = err ->
         err
 
       {:ok, sorted_node_ids} ->
-        # 2. 染色：决定每个 Node 属于哪个 Cluster
-        node_colors =
-          Lily.Graph.Cluster.paint_graph(sorted_node_ids, graph.edges, cluster_declara)
+        node_colors = Cluster.paint_graph(sorted_node_ids, graph.edges, cluster_declara)
 
-        # 3. 按簇分组
-        clusters =
-          Enum.group_by(
-            # 保持拓扑顺序
-            sorted_node_ids,
-            fn id -> Map.get(node_colors, id, :default_cluster) end
-          )
+        clusters = Enum.group_by(sorted_node_ids, &Map.get(node_colors, &1, :default_cluster))
 
-        # 4. 生成 Orchid Recipe
-        recipes =
+        static_recipes =
           Enum.map(clusters, fn {cluster_name, node_ids_in_cluster} ->
-            build_recipe(cluster_name, node_ids_in_cluster, graph, %{
-              overrides: global_overrides,
-              offsets: global_offsets
-            })
+            build_recipe(cluster_name, node_ids_in_cluster, graph)
           end)
 
-        {:ok, recipes}
+        {:ok, static_recipes}
     end
   end
 
-  defp build_recipe(cluster_name, node_ids, graph, %{
-         overrides: global_overrides,
-         offsets: global_offsets
-       }) do
+  @spec bind_interventions([recipe_manifest()], History.inputs_bundle()) :: list()
+  def bind_interventions(static_recipes, %{inputs: inputs, overrides: overrides, offsets: offsets}) do
+    Enum.map(static_recipes, fn %{recipe: recipe} = static_bundle ->
+      # Extract node ids involved in this specific recipe cluster
+      node_ids_in_cluster = extract_recipe_nodes(recipe)
+
+      # Filter data relevant to this cluster
+      local_inputs = filter_port_data(inputs, node_ids_in_cluster)
+      local_overrides = filter_port_data(overrides, node_ids_in_cluster)
+      local_offsets = filter_port_data(offsets, node_ids_in_cluster)
+
+      static_bundle
+      |> Map.put(:overrides, local_overrides)
+      |> Map.put(:offsets, local_offsets)
+      |> Map.put(:inputs, local_inputs)
+    end)
+  end
+
+  defp build_recipe(cluster_name, node_ids, graph) do
     steps =
       node_ids
       |> Enum.map(&Map.fetch!(graph.nodes, &1))
@@ -178,26 +154,11 @@ defmodule Lily.Compiler do
 
     {requires, exports} = calculate_boundaries(node_ids, graph)
 
-    overrides =
-      global_overrides
-      |> Enum.filter(fn {{:port, target_node, _port}, _data} ->
-        target_node in node_ids
-      end)
-      |> Enum.into(%{})
-
-    offsets =
-      global_offsets
-      |> Enum.filter(fn {{:port, target_node, _port}, _data} ->
-        target_node in node_ids
-      end)
-      |> Enum.into(%{})
-
+    # Strictly returns ONLY topology data
     %{
       recipe: Orchid.Recipe.new(steps, name: cluster_name),
       requires: requires,
-      exports: exports,
-      overrides: overrides,
-      offsets: offsets
+      exports: exports
     }
   end
 
@@ -212,32 +173,19 @@ defmodule Lily.Compiler do
         end
       end)
 
-    step_outputs =
-      Enum.map(node.outputs, fn port_name ->
-        Portkey.to_orchid_key({:port, node.id, port_name})
-      end)
+    step_outputs = Enum.map(node.outputs, fn p -> Portkey.to_orchid_key({:port, node.id, p}) end)
 
-    build_orchid_step(
-      node.impl,
-      step_inputs,
-      step_outputs,
-      node.opts
-    )
+    build_orchid_step(node.impl, step_inputs, step_outputs, node.opts)
   end
 
   defp calculate_boundaries(node_ids_in_cluster, graph) do
     cluster_nodes_set = MapSet.new(node_ids_in_cluster)
 
-    # 1. 计算 Requires:
-    # a. 来自外部簇的输入边
     external_in_edges =
       graph.edges
-      |> Enum.filter(fn e ->
-        e.to_node in cluster_nodes_set and e.from_node not in cluster_nodes_set
-      end)
-      |> Enum.map(fn e -> Portkey.to_orchid_key({:port, e.from_node, e.from_port}) end)
+      |> Enum.filter(&(&1.to_node in cluster_nodes_set and &1.from_node not in cluster_nodes_set))
+      |> Enum.map(&Portkey.to_orchid_key({:port, &1.from_node, &1.from_port}))
 
-    # b. 完全没有连线的悬空输入 (Dangling Inputs)
     dangling_inputs =
       Enum.flat_map(node_ids_in_cluster, fn node_id ->
         node = graph.nodes[node_id]
@@ -250,17 +198,30 @@ defmodule Lily.Compiler do
 
     requires = Enum.uniq(external_in_edges ++ dangling_inputs)
 
-    # 2. 计算 Exports:
-    # 流向外部簇的输出边
     exports =
       graph.edges
-      |> Enum.filter(fn e ->
-        e.from_node in cluster_nodes_set and e.to_node not in cluster_nodes_set
-      end)
-      |> Enum.map(fn e -> Portkey.to_orchid_key({:port, e.from_node, e.from_port}) end)
+      |> Enum.filter(&(&1.from_node in cluster_nodes_set and &1.to_node not in cluster_nodes_set))
+      |> Enum.map(&Portkey.to_orchid_key({:port, &1.from_node, &1.from_port}))
       |> Enum.uniq()
 
     {requires, exports}
+  end
+
+  defp filter_port_data(data_map, node_ids) do
+    data_map
+    |> Enum.filter(fn {{:port, target_node, _port}, _data} -> target_node in node_ids end)
+    |> Enum.into(%{})
+  end
+
+  defp extract_recipe_nodes(%Orchid.Recipe{steps: steps}) do
+    # Assuming step format is {Impl, Inputs, Outputs, Opts} and outputs start with "nodeid_port"
+    # An alternative is storing node_ids in the recipe metadata.
+    # We will simulate node extraction based on output keys:
+    Enum.flat_map(steps, fn {_impl, _in, outs, _opts} ->
+      Enum.map(outs, fn out_key ->
+        out_key |> Atom.to_string() |> String.split("_") |> hd() |> String.to_atom()
+      end)
+    end) |> Enum.uniq()
   end
 
   def build_orchid_step(impl, inputs, outputs, opts) do
@@ -284,7 +245,6 @@ defmodule Lily.Graph do
             inputs: [atom()],
             outputs: [atom()],
             opts: keyword(),
-            maybe_input_context: %{atom() => any()},
             extra: map()
           }
 
@@ -294,7 +254,6 @@ defmodule Lily.Graph do
       inputs: [],
       outputs: [],
       opts: [],
-      maybe_input_context: nil,
       extra: %{}
     ]
   end
@@ -323,11 +282,6 @@ defmodule Lily.Graph do
         to_port: to_port
       }
     end
-
-    @spec to_edge_key(t()) :: Lily.History.Operation.edge_key()
-    def to_edge_key(%__MODULE__{} = edge) do
-      {:edge, edge.from_node, edge.from_port, edge.to_node, edge.to_port}
-    end
   end
 
   defmodule Portkey do
@@ -347,6 +301,10 @@ defmodule Lily.Graph do
   defstruct nodes: %{}, edges: MapSet.new()
 
   def new, do: %__MODULE__{}
+
+  # https://elixirforum.com/t/what-is-a-good-way-to-compare-structs/59303
+  @spec same?(t(), t()) :: boolean()
+  def same?(graph1, graph2), do: graph1 == graph2
 
   @spec add_node(t(), Node.t()) :: t()
   def add_node(%__MODULE__{nodes: old_nodes} = graph, %Node{id: node_id} = node) do
@@ -523,10 +481,6 @@ defmodule Lily.History do
   defmodule Operation do
     alias Lily.Graph.{Node, Edge, Portkey}
 
-    @type edge_key ::
-            {:edge, from_node :: atom(), from_port :: atom(), to_node :: atom(),
-             to_port :: atom()}
-
     @type topology_mutation ::
             {:add_node, Node.t()}
             | {:update_node, Node.id(),
@@ -536,8 +490,8 @@ defmodule Lily.History do
             | {:remove_edge, Edge.t()}
 
     @type input_declar ::
-            {:update_node_input, Node.id(), port_id :: atom(), new_input :: any()}
-            | {:remove_node_input, Node.id(), port_id :: atom()}
+            {:set_input, Portkey.t(), data :: any()}
+            | {:remove_input, Portkey.t()}
 
     @type data_interventions ::
             {:override, Portkey.t(), data :: any()}
@@ -547,8 +501,16 @@ defmodule Lily.History do
     @type t :: topology_mutation() | data_interventions() | input_declar()
   end
 
-  alias Lily.Graph.Portkey
   alias Lily.Graph
+
+  @type inputs_bundle :: %{
+          :inputs => %{Lily.Graph.Portkey.t() => any()},
+          :overrides => %{Lily.Graph.Portkey.t() => any()},
+          :offsets => %{Lily.Graph.Portkey.t() => any()},
+          optional(any()) => any()
+        }
+
+  @type effective_state :: {Lily.Graph.t(), inputs_bundle()}
 
   @type t :: %__MODULE__{
           # 越新的操作越靠前 (Head)
@@ -562,30 +524,24 @@ defmodule Lily.History do
   @doc "初始化一个新的历史记录"
   def new, do: %__MODULE__{}
 
-  @spec push(Lily.History.t(), any()) :: Lily.History.t()
+  @spec push(t(), any()) :: t()
   def push(%__MODULE__{undo_stack: undo} = history, op) do
     %{history | undo_stack: [op | undo], redo_stack: []}
   end
 
-  @spec undo(Lily.History.t()) :: Lily.History.t()
+  @spec undo(t()) :: t()
   def undo(%__MODULE__{undo_stack: []} = history), do: history
 
   def undo(%__MODULE__{undo_stack: [last_op | rest_undo], redo_stack: redo} = history) do
     %{history | undo_stack: rest_undo, redo_stack: [last_op | redo]}
   end
 
-  @spec redo(Lily.History.t()) :: Lily.History.t()
+  @spec redo(t()) :: t()
   def redo(%__MODULE__{redo_stack: []} = history), do: history
 
   def redo(%__MODULE__{undo_stack: undo, redo_stack: [next_op | rest_redo]} = history) do
     %{history | undo_stack: [next_op | undo], redo_stack: rest_redo}
   end
-
-  @type effective_state :: %{
-          graph: Graph.t(),
-          overrides: %{Portkey.t() => any()},
-          offsets: %{Portkey.t() => any()}
-        }
 
   @doc """
   将所有的历史记录（过去）按时间顺序叠加到 base_graph 上。
@@ -593,14 +549,12 @@ defmodule Lily.History do
   """
   @spec resolve(Graph.t(), t()) :: effective_state()
   def resolve(%Graph{} = base_graph, %__MODULE__{undo_stack: undo_stack}) do
-    # 为什么要 reverse？因为 undo_stack 的头部是最新的操作，
-    # 我们要像看电影一样，从最古老的操作开始依次重播 (Replay)。
-    chronological_ops = Enum.reverse(undo_stack)
+    initial_state = %{graph: base_graph, inputs: %{}, overrides: %{}, offsets: %{}}
 
-    # 初始的折叠状态：图是原图，覆盖数据是空的
-    initial_state = %{graph: base_graph, overrides: %{}, offsets: %{}}
-
-    Enum.reduce(chronological_ops, initial_state, &apply_operation/2)
+    undo_stack
+    |> Enum.reverse()
+    |> Enum.reduce(initial_state, &apply_operation/2)
+    |> Map.pop(:graph)
   end
 
   defp apply_operation({:add_node, node}, state) do
@@ -628,24 +582,24 @@ defmodule Lily.History do
   end
 
   defp apply_operation({:offset, {:port, _, _} = port_key, value}, state) do
-    %{state | offsets: Map.put(state[:offsets], port_key, value)}
+    %{state | offsets: Map.put(state.offsets, port_key, value)}
   end
 
   defp apply_operation({:remove_interventions, {:port, _, _} = port_key}, state) do
     %{
       state
-      | overrides: Map.delete(state[:overrides], port_key),
-        offsets: Map.delete(state[:offsets], port_key)
+      | overrides: Map.delete(state.overrides, port_key),
+        offsets: Map.delete(state.offsets, port_key)
     }
   end
 
-  # defp apply_operation({:update_node_input, node_id, node_port, new_input}, state) do
-  #   apply_operation(
-  #     {:update_node, node_id,
-  #      fn node = %Graph.Node{} -> %{node | maybe_input_context: new_input} end},
-  #     state
-  #   )
-  # end
+  defp apply_operation({:set_input, port_key, data}, state) do
+    %{state | inputs: Map.put(state.inputs, port_key, data)}
+  end
+
+  defp apply_operation({:remove_input, port_key}, state) do
+    %{state | inputs: Map.delete(state.inputs, port_key)}
+  end
 end
 ```
 
@@ -698,9 +652,7 @@ defmodule LilyCompilerTest do
   test "编译器：单集群编译与悬空参数识别" do
     graph = build_test_graph()
 
-    effective_state = %{graph: graph, overrides: %{}, offsets: %{}}
-
-    {:ok, recipes} = Compiler.compile(effective_state)
+    {:ok, recipes} = Compiler.compile(graph)
 
     assert length(recipes) == 1
     recipe = hd(recipes)
@@ -713,7 +665,6 @@ defmodule LilyCompilerTest do
 
   test "编译器：硬核分簇切割与跨边缝合 (Cut & Bridge)" do
     graph = build_test_graph()
-    effective_state = %{graph: graph, overrides: %{}, offsets: %{}}
 
     cluster_declara = %Cluster{
       node_colors: %{
@@ -725,7 +676,7 @@ defmodule LilyCompilerTest do
       }
     }
 
-    {:ok, recipes} = Compiler.compile(effective_state, cluster_declara)
+    {:ok, recipes} = Compiler.compile(graph, cluster_declara)
 
     assert length(recipes) == 2
 
@@ -742,16 +693,84 @@ defmodule LilyCompilerTest do
 
     assert :mul_b in gpu_recipe.requires
   end
+
+  test "编译器：两阶段编译 - 拓扑切割与数据缝合" do
+    graph = build_test_graph()
+    
+    # 模拟 History 得到的 init_data (包含 inputs, overrides 等)
+    init_data = %{
+      inputs: %{ {:port, :split, :val} => 42 },
+      overrides: %{ {:port, :inc, :res} => 100 },
+      offsets: %{}
+    }
+
+    cluster_declara = %Cluster{
+      node_colors: %{
+        split: :cpu_cluster,
+        inc:   :cpu_cluster,
+        dec:   :cpu_cluster,
+        add:   :gpu_cluster,
+        mul:   :gpu_cluster
+      }
+    }
+
+    # 第一阶段：纯拓扑编译
+    {:ok, static_recipes} = Compiler.compile(graph, cluster_declara)
+
+    assert length(static_recipes) == 2
+    
+    cpu_recipe = Enum.find(static_recipes, &(&1[:recipe].name == :cpu_cluster))
+    assert :split_val in cpu_recipe.requires
+    refute Map.has_key?(cpu_recipe, :overrides) # 确保没有包含侧载数据
+
+    # 第二阶段：数据绑定 (Downstream Enumerable Mapping)
+    final_bundles = Compiler.bind_interventions(static_recipes, init_data)
+    
+    # 验证数据是否被正确分发到对应的 bundle
+    cpu_bundle = Enum.find(final_bundles, &(&1[:recipe].name == :cpu_cluster))
+    gpu_bundle = Enum.find(final_bundles, &(&1[:recipe].name == :gpu_cluster))
+
+    # CPU 集群包含了 :split 的 input 和 :inc 的 override
+    assert cpu_bundle.inputs[{:port, :split, :val}] == 42
+    assert cpu_bundle.overrides[{:port, :inc, :res}] == 100
+    
+    # GPU 集群没有任何干预数据
+    assert map_size(gpu_bundle.overrides) == 0
+  end
 end
 ```
 
 Result:
 
-```
-➜ mix test
-Running ExUnit with seed: 594731, max_cases: 24                                                                                                                    
+```plain
+➜ mix test --cover
+Cover compiling modules ...                                                                                                                                        
+Running ExUnit with seed: 288564, max_cases: 24
 
-.....
-Finished in 0.08 seconds (0.00s async, 0.08s sync)
-0 doctest, 3 tests, 0 failures
+......
+Finished in 0.1 seconds (0.00s async, 0.1s sync)
+1 doctest, 5 tests, 0 failures
+
+Generating cover results ...
+
+| Percentage | Module                 |
+|------------|------------------------|
+|      0.00% | Lily.Graph.Edge        |
+|      0.00% | Lily.History           |
+|     62.86% | Lily.Graph             |
+|     97.92% | Lily.Compiler          |
+|    100.00% | Lily                   |
+|    100.00% | Lily.Graph.Cluster     |
+|    100.00% | Lily.Graph.Node        |
+|    100.00% | Lily.Graph.Portkey     |
+|    100.00% | Lily.History.Operation |
+|------------|------------------------|
+|     70.94% | Total                  |
+
+Coverage test failed, threshold not met:
+
+    Coverage:   70.94%
+    Threshold:  90.00%
+
+Generated HTML coverage results in "cover" directory
 ```
