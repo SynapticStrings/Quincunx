@@ -50,54 +50,34 @@ defmodule Quincunx.Session.Segment do
     %{segment | history: History.redo(segment.history)}
   end
 
-  @spec compile_to_recipes(t() | [t()]) :: {:error, :cycle_detected} | {:ok, [map()]}
-  def compile_to_recipes(%__MODULE__{} = segment) do
-    {graph, cluster_declara} = segment.graph_with_cluster
+  @spec compile_batch([t()]) :: {:error, :cycle_detected} | {:ok, [%{id() => any()}]}
+  def compile_batch(segments) do
+    Enum.map(segments, fn seg ->
+      {graph, cluster} = seg.graph_with_cluster
+      {final_graph, interventions} = History.resolve(graph, seg.history)
 
-    {final_graph, interventions} =
-      History.resolve(graph, segment.history)
-
-    final_graph
-    |> Compiler.compile(cluster_declara)
-    |> case do
-      {:ok, recipe} ->
-        recipe
-        |> List.wrap()
-        |> Compiler.bind_interventions(interventions)
-
-      err ->
-        err
-    end
-  end
-
-  def compile_to_recipes(segments) when is_list(segments) do
-    resolved_items =
-      Enum.map(segments, fn segment ->
-        {base_graph, cluster} = segment.graph_with_cluster
-        {final_graph, interventions} = History.resolve(base_graph, segment.history)
-        {{final_graph, cluster}, interventions}
-      end)
-
-    # Key: {final_graph, cluster}
-    # Value: List of interventions
-    grouped = Enum.group_by(resolved_items, &elem(&1, 0), &elem(&1, 1))
-
-    Enum.reduce_while(grouped, {:ok, []}, fn {{graph, cluster}, interventions_list},
-                                             {:ok, acc_recipes} ->
+      %{
+        id: seg.id,
+        key: {final_graph, cluster},
+        interventions: interventions
+      }
+    end)
+    |> Enum.group_by(& &1.key)
+    |> Enum.reduce_while({:ok, []}, fn {{graph, cluster}, items}, {:ok, acc} ->
       case Compiler.compile(graph, cluster) do
-        {:ok, recipe} ->
-          bind_result =
-            Enum.reduce(interventions_list, [], fn interventions, sub_acc ->
-              sub_acc ++
-                (recipe
-                 |> List.wrap()
-                 |> Compiler.bind_interventions(interventions))
+        {:ok, base_recipes} ->
+          # base_recipes 是一个列表 [Recipe_Stage1, Recipe_Stage2, ...]
+          # 我们需要为组内的每个 item 生成一份绑定后的 recipe 列表
+          bound_group =
+            Enum.map(items, fn item ->
+              bound_recipes = Compiler.bind_interventions(base_recipes, item.interventions)
+              {item.id, bound_recipes}
             end)
 
-          {:cont, {:ok, acc_recipes ++ bind_result}}
+          {:cont, {:ok, acc ++ bound_group}}
 
-        err ->
-          {:halt, err}
+        error ->
+          {:halt, error}
       end
     end)
   end
