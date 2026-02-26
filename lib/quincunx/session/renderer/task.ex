@@ -2,7 +2,7 @@ defmodule Quincunx.Session.Renderer.Task do
   alias Quincunx.Session.Segment
 
   @type blackboard :: %{
-          optional({Segment.id(), Lily.Graph.Portkey.t()}) => any()
+          optional({Segment.id(), Lily.Graph.Portkey.t()}) => Orchid.Param.t() | any()
         }
 
   @doc """
@@ -48,9 +48,11 @@ defmodule Quincunx.Session.Renderer.Task do
     # Parallel Execution via Task.async_stream
     # This is where the 100 segments run concurrently.
     stream =
-      Task.async_stream(batch, fn {seg_id, recipe} ->
-        process_segment_recipe(seg_id, recipe, blackboard)
-      end, max_concurrency: concurrency, timeout: timeout, ordered: false)
+      Task.async_stream(
+        batch,
+        fn {seg_id, recipe} ->
+          process_segment_recipe(seg_id, recipe, blackboard)
+        end, max_concurrency: concurrency, timeout: timeout, ordered: false)
 
     # Collect Results (Reduce)
     Enum.reduce_while(stream, {:ok, blackboard}, fn
@@ -79,10 +81,16 @@ defmodule Quincunx.Session.Renderer.Task do
 
     dynamic_inputs =
       Enum.map(required_keys, fn port_name ->
-        val = Map.get(blackboard, {seg_id, port_name})
-        # Determine type? Orchid params need types.
-        # For intermediate data, :any or :tensor is usually fine.
-        Orchid.Param.new(port_name, :any, val)
+        case Map.get(blackboard, {seg_id, port_name}) do
+          %Orchid.Param{} = param -> param
+
+          # Determine type? Orchid params need types.
+          # For intermediate data, :any or :tensor is usually fine.
+          val ->
+            port_name
+            |> Lily.Graph.Portkey.to_orchid_key()
+            |> Orchid.Param.new(:any, val)
+        end
       end)
 
     # 2. Mix with Static Interventions
