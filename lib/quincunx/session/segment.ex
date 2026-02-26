@@ -12,6 +12,7 @@ defmodule Quincunx.Session.Segment do
   @type t :: %__MODULE__{
           id: id(),
           graph_with_cluster: {Graph.t(), Cluster.t()},
+          compiled_recipes: nil | Orchid.Recipe.t(),
           history: History.t(),
           snapshots: %{optional(atom()) => any()},
           extra: map()
@@ -20,6 +21,7 @@ defmodule Quincunx.Session.Segment do
   defstruct [
     :id,
     graph_with_cluster: {%Graph{}, %Cluster{}},
+    compiled_recipes: nil,
     history: %History{},
     snapshots: %{},
     extra: %{}
@@ -50,34 +52,57 @@ defmodule Quincunx.Session.Segment do
     %{segment | history: History.redo(segment.history)}
   end
 
-  @spec compile_batch([t()]) :: {:error, :cycle_detected} | {:ok, [%{id() => any()}]}
-  def compile_batch(segments) do
-    Enum.map(segments, fn seg ->
-      {graph, cluster} = seg.graph_with_cluster
-      {final_graph, interventions} = History.resolve(graph, seg.history)
+  def compile_to_recipes(%__MODULE__{} = segment) do
+    case compile_to_recipes([segment]) do
+      {:ok, [compiled_seg]} -> {:ok, compiled_seg.compiled_recipes}
+      {:error, _} = err -> err
+    end
+  end
 
-      %{
-        id: seg.id,
-        key: {final_graph, cluster},
-        interventions: interventions
-      }
-    end)
-    |> Enum.group_by(& &1.key)
-    |> Enum.reduce_while({:ok, []}, fn {{graph, cluster}, items}, {:ok, acc} ->
+  def compile_to_recipes(segments) when is_list(segments) do
+    # 1. Resolve History -> {FinalGraph, Cluster, Interventions}
+    # 我们先解析历史，拿到最终的图结构，这是分组的依据
+    resolved_items =
+      Enum.map(segments, fn seg ->
+        {base_graph, cluster} = seg.graph_with_cluster
+        {final_graph, interventions} = History.resolve(base_graph, seg.history)
+
+        %{
+          segment: seg,
+          # Key 用于分组：只有图结构(final_graph)和分簇配置(cluster)都完全一致，才能复用配方
+          group_key: {final_graph, cluster},
+          interventions: interventions,
+        }
+      end)
+
+    # 2. Group By Topology
+    grouped = Enum.group_by(resolved_items, & &1.group_key)
+
+    # 3. Compile & Bind
+    # 使用 reduce_while 确保一旦出错（如有环）立即停止
+    Enum.reduce_while(grouped, {:ok, []}, fn {{graph, cluster}, items}, {:ok, acc} ->
+      # --- 关键点：每组只调用一次 compile ---
       case Compiler.compile(graph, cluster) do
-        {:ok, base_recipes} ->
-          # base_recipes 是一个列表 [Recipe_Stage1, Recipe_Stage2, ...]
-          # 我们需要为组内的每个 item 生成一份绑定后的 recipe 列表
-          bound_group =
+        {:ok, static_recipes} ->
+          # static_recipes 是 [Stage1_Recipe, Stage2_Recipe] (未绑定数据的模版)
+
+          # 为组内每个 Segment 绑定其独有的 interventions
+          compiled_group =
             Enum.map(items, fn item ->
-              bound_recipes = Compiler.bind_interventions(base_recipes, item.interventions)
-              {item.id, bound_recipes}
+              # bind_interventions 负责将 interventions 注入到 recipe 的 initial_params 或 overrides 中
+              bound_recipes =
+                static_recipes
+                |> List.wrap()
+                |> Compiler.bind_interventions(item.interventions)
+
+              # 返回更新后的 Segment 结构
+              %{item.segment | compiled_recipes: bound_recipes}
             end)
 
-          {:cont, {:ok, acc ++ bound_group}}
+          {:cont, {:ok, acc ++ compiled_group}}
 
-        error ->
-          {:halt, error}
+        {:error, reason} ->
+          {:halt, {:error, reason}}
       end
     end)
   end

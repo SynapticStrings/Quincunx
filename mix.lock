@@ -1,5 +1,5 @@
 %{
-  "lily": {:git, "https://github.com/SynapticStrings/Lily.git", "8dc79e55ce528d52116d4c5d17a26f906b6dbd42", []},
+  "lily": {:git, "https://github.com/SynapticStrings/Lily.git", "f4b6fd09141f1af003df19ad07a468a42a0a5428", []},
   "orchid": {:git, "https://github.com/SynapticStrings/Orchid.git", "ed43fa23125fc4a7fca41c90c1d1ab4df155073c", [branch: "core"]},
   "orchid_symbiont": {:git, "https://github.com/SynapticStrings/OrchidSymbiont.git", "9fad09ce6aa4e779e4886838be183446757fbd7e", []},
   "telemetry": {:hex, :telemetry, "1.3.0", "fedebbae410d715cf8e7062c96a1ef32ec22e764197f70cda73d82778d61e7a2", [:rebar3], [], "hexpm", "7015fc8919dbe63764f4b4b87a95b7c0996bd539e0d499be6ec9d7f3875b79e6"},
