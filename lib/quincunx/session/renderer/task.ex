@@ -1,0 +1,3 @@
+defmodule Quincunx.Session.Renderer.Task do
+  # ...
+end
