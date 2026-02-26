@@ -11,30 +11,27 @@ defmodule Quincunx.Segment do
 
   @type t :: %__MODULE__{
           id: id(),
-          base_graph: Graph.t(),
+          graph_with_cluster: {Graph.t(), Cluster.t()},
           history: History.t(),
-          cluster_declara: Cluster.t(),
           snapshots: %{optional(atom()) => any()},
           extra: map()
         }
 
   defstruct [
     :id,
-    base_graph: %Graph{},
+    graph_with_cluster: {%Graph{}, %Cluster{}},
     history: %History{},
-    cluster_declara: %Cluster{},
     snapshots: %{},
     extra: %{}
   ]
 
   @spec new(id(), Graph.t()) :: t()
   @spec new(id(), Graph.t(), Cluster.t()) :: t()
-  def new(id, base_graph, cluster_declara \\ %Cluster{}) do
+  def new(id, graph_with_cluster, cluster_declara \\ %Cluster{}) do
     %__MODULE__{
       id: id,
-      base_graph: base_graph,
-      history: History.new(),
-      cluster_declara: cluster_declara
+      graph_with_cluster: {graph_with_cluster, cluster_declara},
+      history: History.new()
     }
   end
 
@@ -53,13 +50,15 @@ defmodule Quincunx.Segment do
     %{segment | history: History.redo(segment.history)}
   end
 
-  @spec compile_to_recipes(t()) :: {:error, :cycle_detected} | {:ok, list()}
+  @spec compile_to_recipes(t() | [t()]) :: {:error, :cycle_detected} | {:ok, [map()]}
   def compile_to_recipes(%__MODULE__{} = segment) do
+    {graph, cluster_declara} = segment.graph_with_cluster
+
     {final_graph, interventions} =
-      History.resolve(segment.base_graph, segment.history)
+      History.resolve(graph, segment.history)
 
     final_graph
-    |> Compiler.compile(segment.cluster_declara)
+    |> Compiler.compile(cluster_declara)
     |> case do
       {:ok, recipe} ->
         recipe
@@ -71,10 +70,35 @@ defmodule Quincunx.Segment do
     end
   end
 
-  # def compile_to_recipes([%__MODULE__{}] = segments) do
-  #   segments
-  #   |> Enum.map(&History.resolve(&1.base_graph, &1.history))
-  #   |> Enum.group_by(& &1) # via Graph
-  #   |> Enum.map(fn {graph, inputs} -> case  end)
-  # end
+  def compile_to_recipes(segments) when is_list(segments) do
+    resolved_items =
+      Enum.map(segments, fn segment ->
+        {base_graph, cluster} = segment.graph_with_cluster
+        {final_graph, interventions} = History.resolve(base_graph, segment.history)
+        {{final_graph, cluster}, interventions}
+      end)
+
+    # Key: {final_graph, cluster}
+    # Value: List of interventions
+    grouped = Enum.group_by(resolved_items, &elem(&1, 0), &elem(&1, 1))
+
+    Enum.reduce_while(grouped, {:ok, []}, fn {{graph, cluster}, interventions_list},
+                                             {:ok, acc_recipes} ->
+      case Compiler.compile(graph, cluster) do
+        {:ok, recipe} ->
+          bind_result =
+            Enum.reduce(interventions_list, [], fn interventions, sub_acc ->
+              sub_acc ++
+                (recipe
+                 |> List.wrap()
+                 |> Compiler.bind_interventions(interventions))
+            end)
+
+          {:cont, {:ok, acc_recipes ++ bind_result}}
+
+        err ->
+          {:halt, err}
+      end
+    end)
+  end
 end
