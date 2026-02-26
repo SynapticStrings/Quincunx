@@ -12,7 +12,7 @@ defmodule Quincunx.Session.Segment do
   @type t :: %__MODULE__{
           id: id(),
           graph_with_cluster: {Graph.t(), Cluster.t()},
-          compiled_recipes: nil | Orchid.Recipe.t(),
+          compiled_recipes: nil | [Compiler.recipe_with_bundle()],
           history: History.t(),
           snapshots: %{optional(atom()) => any()},
           extra: map()
@@ -52,6 +52,7 @@ defmodule Quincunx.Session.Segment do
     %{segment | history: History.redo(segment.history)}
   end
 
+  @spec compile_to_recipes([t()] | t()) :: {:ok, Compiler.recipe_with_bundle() | [t()]} | {:error, term()}
   def compile_to_recipes(%__MODULE__{} = segment) do
     case compile_to_recipes([segment]) do
       {:ok, [compiled_seg]} -> {:ok, compiled_seg.compiled_recipes}
@@ -71,7 +72,7 @@ defmodule Quincunx.Session.Segment do
           segment: seg,
           # Key 用于分组：只有图结构(final_graph)和分簇配置(cluster)都完全一致，才能复用配方
           group_key: {final_graph, cluster},
-          interventions: interventions,
+          interventions: interventions
         }
       end)
 
