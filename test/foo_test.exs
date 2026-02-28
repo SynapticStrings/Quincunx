@@ -73,7 +73,7 @@ defmodule Quincunx.SegmentBatchTest do
     assert length(res_seg1.compiled_recipes) == 2
 
     # 找到 CPU Recipe (它包含 node_a)
-    gpu_recipe_1 = Enum.find(res_seg1.compiled_recipes, &(&1[:recipe].name == :gpu_cluster))
+    gpu_recipe_1 = Enum.find(res_seg1.compiled_recipes, &(&1.recipe.name == :gpu_cluster))
     # 验证 Lily.Compiler.bind_interventions 是否成功将 100 注入
     # 根据 Lily 的设计，绑定后的数据通常存在 Recipe 的 overrides 或 inputs 字段中
     # 这里假设是一个类似 %{inputs: %{key => val}, overrides: ...} 的结构
@@ -81,7 +81,7 @@ defmodule Quincunx.SegmentBatchTest do
     assert gpu_recipe_1.overrides[{:port, :node_b, :mid}] == 100
 
     # 3. 验证 Segment 2 (Graph V1, Value 200)
-    gpu_recipe_2 = Enum.find(res_seg2.compiled_recipes, &(&1[:recipe].name == :gpu_cluster))
+    gpu_recipe_2 = Enum.find(res_seg2.compiled_recipes, &(&1.recipe.name == :gpu_cluster))
     # 关键验证：虽然拓扑和 Segment 1 一样，但数据必须是独立的 200
     assert gpu_recipe_2.overrides[{:port, :node_b, :mid}] == 200
 
@@ -96,7 +96,7 @@ defmodule Quincunx.SegmentBatchTest do
     # 这里我们通过检查 export 或 name 来验证它是针对 Graph V2 编译的
     # (具体验证依赖 Orchid Recipe 的内部结构，这里假设它是一个包含 steps 的 Recipe)
     # 如果是 Cluster 模式，compile 应该返回 list of recipes
-    assert cpu_recipe_3[:recipe].name == :cpu_cluster
+    assert cpu_recipe_3.recipe.name == :cpu_cluster
   end
 
   test "错误处理：包含环路的 Segment 会导致批处理失败" do

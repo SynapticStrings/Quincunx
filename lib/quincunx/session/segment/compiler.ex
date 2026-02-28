@@ -6,6 +6,19 @@ defmodule Quincunx.Session.Segment.Compiler do
   alias Quincunx.Session.Segment.{Graph, History}
   alias Quincunx.Session.Segment.Graph.{Node, Portkey, Cluster}
 
+  defmodule Context do
+    @type t :: %__MODULE__{
+            recipe: Orchid.Recipe.t(),
+            requires: [Portkey.t()],
+            exports: [Portkey.t()],
+            node_ids: [Node.id()],
+            inputs: nil | %{Portkey.t() => any()},
+            overrides: nil | %{Portkey.t() => any()},
+            offsets: nil | %{Portkey.t() => any()}
+          }
+    defstruct [:recipe, :requires, :exports, :node_ids, :inputs, :overrides, :offsets]
+  end
+
   @type recipe_manifest :: %{
           recipe: Orchid.Recipe.t(),
           requires: [Portkey.t()],
@@ -23,7 +36,7 @@ defmodule Quincunx.Session.Segment.Compiler do
           offsets: %{Portkey.t() => any()}
         }
 
-  @spec compile(Graph.t()) :: {:error, :cycle_detected} | {:ok, [recipe_manifest()]}
+  @spec compile(Graph.t()) :: {:error, :cycle_detected} | {:ok, [Context.t()]}
   def compile(%Graph{} = graph, cluster_declara \\ %Cluster{}) do
     case Graph.topological_sort(graph) do
       {:error, _} = err ->
@@ -43,17 +56,14 @@ defmodule Quincunx.Session.Segment.Compiler do
     end
   end
 
-  @spec bind_interventions([recipe_manifest()], History.inputs_bundle()) :: [recipe_with_bundle()]
+  @spec bind_interventions([Context.t()], History.inputs_bundle()) :: [Context.t()]
   def bind_interventions(static_recipes, %{inputs: inputs, overrides: overrides, offsets: offsets}) do
     Enum.map(static_recipes, fn %{node_ids: node_ids} = static_bundle ->
       local_inputs = filter_port_data(inputs, node_ids)
       local_overrides = filter_port_data(overrides, node_ids)
       local_offsets = filter_port_data(offsets, node_ids)
 
-      static_bundle
-      |> Map.put(:overrides, local_overrides)
-      |> Map.put(:offsets, local_offsets)
-      |> Map.put(:inputs, local_inputs)
+      %{static_bundle | overrides: local_overrides, offsets: local_offsets, inputs: local_inputs}
     end)
   end
 
@@ -65,7 +75,7 @@ defmodule Quincunx.Session.Segment.Compiler do
 
     {requires, exports} = calculate_boundaries(node_ids, graph)
 
-    %{
+    %Context{
       recipe: Orchid.Recipe.new(steps, name: cluster_name),
       requires: requires,
       exports: exports,
