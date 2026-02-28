@@ -2,8 +2,8 @@ defmodule Quincunx.SegmentBatchTest do
   use ExUnit.Case
 
   alias Quincunx.Session.Segment
-  alias Lily.{Graph, History}
-  alias Lily.Graph.{Node, Edge, Cluster}
+  alias Quincunx.Session.Segment.{Graph, History}
+  alias Quincunx.Session.Segment.Graph.{Node, Edge, Cluster}
 
   # --- 辅助函数：构建一个基础图 ---
   # A(input) -> B(process) -> C(output)

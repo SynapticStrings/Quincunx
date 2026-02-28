@@ -1,6 +1,6 @@
 defmodule Quincunx.Session.Renderer.Blackboard do
   alias Quincunx.Session.Segment
-  alias Lily.Graph.Portkey
+  alias Quincunx.Session.Segment.Graph.Portkey
 
   @type t :: %__MODULE__{
           segment_id: Segment.id(),

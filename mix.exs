@@ -22,8 +22,7 @@ defmodule Quincunx.MixProject do
     [
       {:orchid,
        git: "https://github.com/SynapticStrings/Orchid.git", branch: "core", override: true},
-      {:orchid_symbiont, git: "https://github.com/SynapticStrings/OrchidSymbiont.git"},
-      {:lily, git: "https://github.com/SynapticStrings/Lily.git"}
+      {:orchid_symbiont, git: "https://github.com/SynapticStrings/OrchidSymbiont.git"}
     ]
   end
 end
