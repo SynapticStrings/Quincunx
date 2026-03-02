@@ -1,6 +1,6 @@
 defmodule Quincunx.Session.Segment.Compiler do
   @moduledoc """
-  The final stage of the Lily pure functional pipeline.
+  The final stage of pure functional pipelines.
   Translates the effective DAG into a sequence of Orchid.Recipe.
   """
   alias Quincunx.Session.Segment.{Graph, History}
@@ -119,11 +119,22 @@ defmodule Quincunx.Session.Segment.Compiler do
 
     requires = Enum.uniq(external_in_edges ++ dangling_inputs)
 
-    exports =
+    external_out_edges =
       graph.edges
       |> Enum.filter(&(&1.from_node in cluster_nodes_set and &1.to_node not in cluster_nodes_set))
       |> Enum.map(&Portkey.to_orchid_key({:port, &1.from_node, &1.from_port}))
-      |> Enum.uniq()
+
+    # when REAL Outputs may
+    dangling_outputs = Enum.flat_map(node_ids_in_cluster, fn node_id ->
+        node = graph.nodes[node_id]
+        out_edges = Graph.get_out_edges(graph, node_id)
+
+        node.outputs
+        |> Enum.reject(fn port -> Enum.any?(out_edges, &(&1.to_port == port)) end)
+        |> Enum.map(fn port -> Portkey.to_orchid_key({:port, node.id, port}) end)
+      end)
+
+    exports = Enum.uniq(external_out_edges ++ dangling_outputs)
 
     {requires, exports}
   end
