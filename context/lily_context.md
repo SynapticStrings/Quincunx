@@ -36,7 +36,7 @@ history = History.new()
 
 # 4. Compile & Partition (Split execution to prevent VRAM overflow)
 clusters = %Cluster{node_colors: %{acoustic: :gpu_1, vocoder: :gpu_2}}
-{:ok, recipes} = Compiler.compile(graph, clusters)
+{:ok, recipes} = Compiler.compile_graph(graph, clusters)
 [bundle_1, bundle_2] = Compiler.bind_interventions(recipes, interventions)
 
 # Result: 
@@ -113,8 +113,8 @@ defmodule Lily.Compiler do
     node_ids: [Lily.Graph.Node.id()]
   }
 
-  @spec compile(Lily.Graph.t()) :: {:error, :cycle_detected} | {:ok, [recipe_manifest()]}
-  def compile(%Graph{} = graph, cluster_declara \\ %Cluster{}) do
+  @spec compile_graph(Lily.Graph.t()) :: {:error, :cycle_detected} | {:ok, [recipe_manifest()]}
+  def compile_graph(%Graph{} = graph, cluster_declara \\ %Cluster{}) do
     case Graph.topological_sort(graph) do
       {:error, _} = err ->
         err
@@ -658,7 +658,7 @@ defmodule LilyCompilerTest do
   test "编译器：单集群编译与悬空参数识别" do
     graph = build_test_graph()
 
-    {:ok, recipes} = Compiler.compile(graph)
+    {:ok, recipes} = Compiler.compile_graph(graph)
 
     assert length(recipes) == 1
     recipe = hd(recipes)
@@ -682,7 +682,7 @@ defmodule LilyCompilerTest do
       }
     }
 
-    {:ok, recipes} = Compiler.compile(graph, cluster_declara)
+    {:ok, recipes} = Compiler.compile_graph(graph, cluster_declara)
 
     assert length(recipes) == 2
 
@@ -721,7 +721,7 @@ defmodule LilyCompilerTest do
     }
 
     # 第一阶段：纯拓扑编译
-    {:ok, static_recipes} = Compiler.compile(graph, cluster_declara)
+    {:ok, static_recipes} = Compiler.compile_graph(graph, cluster_declara)
 
     assert length(static_recipes) == 2
     

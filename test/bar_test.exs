@@ -44,7 +44,7 @@ defmodule LilyCompilerTest do
   test "编译器：单集群编译与悬空参数识别" do
     graph = build_test_graph()
 
-    {:ok, recipes} = Compiler.compile(graph)
+    {:ok, recipes} = Compiler.compile_graph(graph)
 
     assert length(recipes) == 1
     recipe = hd(recipes)
@@ -68,7 +68,7 @@ defmodule LilyCompilerTest do
       }
     }
 
-    {:ok, recipes} = Compiler.compile(graph, cluster_declara)
+    {:ok, recipes} = Compiler.compile_graph(graph, cluster_declara)
 
     assert length(recipes) == 2
 
@@ -107,7 +107,7 @@ defmodule LilyCompilerTest do
     }
 
     # 第一阶段：纯拓扑编译
-    {:ok, static_recipes} = Compiler.compile(graph, cluster_declara)
+    {:ok, static_recipes} = Compiler.compile_graph(graph, cluster_declara)
 
     assert length(static_recipes) == 2
 

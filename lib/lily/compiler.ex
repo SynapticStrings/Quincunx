@@ -36,8 +36,8 @@ defmodule Lily.Compiler do
           offsets: %{Portkey.t() => any()}
         }
 
-  @spec compile(Graph.t()) :: {:error, :cycle_detected} | {:ok, [Context.t()]}
-  def compile(%Graph{} = graph, cluster_declara \\ %Cluster{}) do
+  @spec compile_graph(Graph.t()) :: {:error, :cycle_detected} | {:ok, [Context.t()]}
+  def compile_graph(%Graph{} = graph, cluster_declara \\ %Cluster{}) do
     case Graph.topological_sort(graph) do
       {:error, _} = err ->
         err

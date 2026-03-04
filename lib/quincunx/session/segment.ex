@@ -76,7 +76,7 @@ defmodule Quincunx.Session.Segment do
     |> Enum.group_by(& &1.group_key)
     # %{{graph, cluster}, [%{segment: seg, interventions: interventions}]}
     |> Enum.reduce_while({:ok, []}, fn {{graph, cluster}, items}, {:ok, acc} ->
-      case Compiler.compile(graph, cluster) do
+      case Compiler.compile_graph(graph, cluster) do
         {:ok, static_recipes} ->
           compiled_group =
             Enum.map(items, fn item ->
