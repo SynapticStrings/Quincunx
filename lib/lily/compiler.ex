@@ -1,10 +1,10 @@
-defmodule Quincunx.Session.Segment.Compiler do
+defmodule Lily.Compiler do
   @moduledoc """
   The final stage of pure functional pipelines.
   Translates the effective DAG into a sequence of Orchid.Recipe.
   """
-  alias Quincunx.Session.Segment.{Graph, History}
-  alias Quincunx.Session.Segment.Graph.{Node, Portkey, Cluster}
+  alias Lily.{Graph, History}
+  alias Lily.Graph.{Node, Portkey, Cluster}
 
   defmodule Context do
     @type t :: %__MODULE__{

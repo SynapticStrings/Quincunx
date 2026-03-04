@@ -1,9 +1,9 @@
 defmodule LilyCompilerTest do
   use ExUnit.Case
 
-  alias Quincunx.Session.Segment.Graph
-  alias Quincunx.Session.Segment.Graph.{Node, Edge, Cluster}
-  alias Quincunx.Session.Segment.Compiler
+  alias Lily.Graph
+  alias Lily.Graph.{Node, Edge, Cluster}
+  alias Lily.Compiler
 
   defp build_test_graph do
     nodes = [

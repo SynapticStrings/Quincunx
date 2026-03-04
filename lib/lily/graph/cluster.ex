@@ -1,9 +1,9 @@
-defmodule Quincunx.Session.Segment.Graph.Cluster do
+defmodule Lily.Graph.Cluster do
   # 将依赖依照用户选择以及依赖关系分簇
   # 以实现并行控制
   # 人话：将部分很耗费资源的服务单独丢出去
   # 将整个并行改成串行 + 并行
-  alias Quincunx.Session.Segment.Graph.{Node, Edge}
+  alias Lily.Graph.{Node, Edge}
 
   @type cluster_name :: atom() | String.t() | [cluster_name()]
 
@@ -14,7 +14,7 @@ defmodule Quincunx.Session.Segment.Graph.Cluster do
   defstruct node_colors: %{},
             merge_groups: []
 
-  @spec paint_graph([Node.t()], MapSet.t(Edge.t()), Quincunx.Session.Segment.Graph.Cluster.t()) ::
+  @spec paint_graph([Node.t()], MapSet.t(Edge.t()), Lily.Graph.Cluster.t()) ::
           %{Node.id() => cluster_name()}
   @doc "Return `%{node_name => final_cluster_name}`"
   def paint_graph(sorted_nodes, edges, %__MODULE__{} = clusters) do
