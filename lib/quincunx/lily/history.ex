@@ -1,6 +1,6 @@
-defmodule Lily.History do
+defmodule Quincunx.Lily.History do
   defmodule Operation do
-    alias Lily.Graph.{Node, Edge, Portkey}
+    alias Quincunx.Lily.Graph.{Node, Edge, Portkey}
 
     @type topology_mutation ::
             {:add_node, Node.t()}
@@ -22,16 +22,16 @@ defmodule Lily.History do
     @type t :: topology_mutation() | data_interventions() | input_declar()
   end
 
-  alias Lily.Graph
+  alias Quincunx.Lily.Graph
 
   @type inputs_bundle :: %{
-          :inputs => %{Lily.Graph.Portkey.t() => any()},
-          :overrides => %{Lily.Graph.Portkey.t() => any()},
-          :offsets => %{Lily.Graph.Portkey.t() => any()},
+          :inputs => %{Graph.Portkey.t() => any()},
+          :overrides => %{Graph.Portkey.t() => any()},
+          :offsets => %{Graph.Portkey.t() => any()},
           optional(any()) => any()
         }
 
-  @type effective_state :: {Lily.Graph.t(), inputs_bundle()}
+  @type effective_state :: {Graph.t(), inputs_bundle()}
 
   @type t :: %__MODULE__{
           # 越新的操作越靠前 (Head)

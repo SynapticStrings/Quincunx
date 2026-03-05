@@ -2,8 +2,8 @@ defmodule Quincunx.SegmentBatchTest do
   use ExUnit.Case
 
   alias Quincunx.Session.Segment
-  alias Lily.{Graph, History}
-  alias Lily.Graph.{Node, Edge, Cluster}
+  alias Quincunx.Lily.{Graph, History}
+  alias Quincunx.Lily.Graph.{Node, Edge, Cluster}
 
   # --- 辅助函数：构建一个基础图 ---
   # A(input) -> B(process) -> C(output)
@@ -74,7 +74,7 @@ defmodule Quincunx.SegmentBatchTest do
 
     # 找到 CPU Recipe (它包含 node_a)
     gpu_recipe_1 = Enum.find(res_seg1.compiled_recipes, &(&1.recipe.name == :gpu_cluster))
-    # 验证 Lily.Compiler.bind_interventions 是否成功将 100 注入
+    # 验证 Quincunx.Lily.Compiler.bind_interventions 是否成功将 100 注入
     # 根据 Lily 的设计，绑定后的数据通常存在 Recipe 的 overrides 或 inputs 字段中
     # 这里假设是一个类似 %{inputs: %{key => val}, overrides: ...} 的结构
     # 或者是一个携带数据的 Bundle 结构
@@ -109,7 +109,7 @@ defmodule Quincunx.SegmentBatchTest do
     seg_ok = Segment.new(:ok, build_graph_v1())
     seg_err = Segment.new(:err, graph_cycle)
 
-    # Lily.Compiler.compile/2 遇到环路应该返回 {:error, :cycle_detected}
+    # Quincunx.Lily.Compiler.compile/2 遇到环路应该返回 {:error, :cycle_detected}
     # Segment.compile_to_recipes/1 应该捕获这个错误并停止
     assert {:error, :cycle_detected} = Segment.compile_to_recipes([seg_ok, seg_err])
   end

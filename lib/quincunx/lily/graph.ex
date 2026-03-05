@@ -1,4 +1,4 @@
-defmodule Lily.Graph do
+defmodule Quincunx.Lily.Graph do
   @moduledoc """
   The pure mathematical representation of the DAG.
   """

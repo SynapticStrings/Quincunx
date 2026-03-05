@@ -4,8 +4,8 @@ defmodule Quincunx.Session.Segment do
   It holds the static topology, user edit history, and cached runtime references.
   """
 
-  alias Lily.History.Operation
-  alias Lily.{Graph, History, Compiler, Graph.Cluster}
+  alias Quincunx.Lily.History.Operation
+  alias Quincunx.Lily.{Graph, History, Compiler, Graph.Cluster}
 
   @type id :: atom() | String.t()
 

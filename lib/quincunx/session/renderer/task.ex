@@ -2,7 +2,7 @@ defmodule Quincunx.Session.Renderer.RenderTask do
   alias Quincunx.Session.Segment
 
   @type blackboard :: %{
-          optional({Segment.id(), Lily.Graph.Portkey.t()}) =>
+          optional({Segment.id(), Quincunx.Lily.Graph.Portkey.t()}) =>
             Orchid.Param.t() | any()
         }
 
@@ -102,7 +102,7 @@ defmodule Quincunx.Session.Renderer.RenderTask do
           # For intermediate data, :any or :tensor is usually fine.
           val ->
             port_name
-            |> Lily.Graph.Portkey.to_orchid_key()
+            |> Quincunx.Lily.Graph.Portkey.to_orchid_key()
             |> Orchid.Param.new(:any, val)
         end
       end)

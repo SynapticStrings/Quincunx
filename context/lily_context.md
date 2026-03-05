@@ -19,7 +19,7 @@ Lily handles the mathematical topology, user edit history, and execution plan ge
 ## 🚀 Quick Start
 
 ```elixir
-alias Lily.{Graph, Graph.Node, Graph.Edge, Graph.Cluster, History, Compiler}
+alias Quincunx.Lily.{Graph, Graph.Node, Graph.Edge, Graph.Cluster, History, Compiler}
 
 # 1. Build the static topology
 graph = Graph.new()
@@ -48,7 +48,7 @@ clusters = %Cluster{node_colors: %{acoustic: :gpu_1, vocoder: :gpu_2}}
 ## Source Code
 
 ```elixir
-defmodule Lily.MixProject do
+defmodule Quincunx.Lily.MixProject do
   use Mix.Project
 
   def project do
@@ -87,7 +87,7 @@ defmodule Lily do
 
   ## Examples
 
-      iex> Lily.hello()
+      iex> Quincunx.Lily.hello()
       :world
 
   """
@@ -96,13 +96,13 @@ defmodule Lily do
   end
 end
 
-defmodule Lily.Compiler do
+defmodule Quincunx.Lily.Compiler do
   @moduledoc """
   The final stage of the Lily pure functional pipeline.
   Translates the effective DAG into a sequence of Orchid.Recipe.
   """
-  alias Lily.{Graph, History}
-  alias Lily.Graph.{Node, Portkey, Cluster}
+  alias Quincunx.Lily.{Graph, History}
+  alias Quincunx.Lily.Graph.{Node, Portkey, Cluster}
 
   @type port_key_name :: {:port, node_id :: Node.id(), port_name :: atom()}
 
@@ -235,7 +235,7 @@ defmodule Lily.Compiler do
   end
 end
 
-defmodule Lily.Graph do
+defmodule Quincunx.Lily.Graph do
   @moduledoc """
   The pure mathematical representation of the DAG.
   """
@@ -436,12 +436,12 @@ defmodule Lily.Graph do
   end
 end
 
-defmodule Lily.Graph.Cluster do
+defmodule Quincunx.Lily.Graph.Cluster do
   # 将依赖依照用户选择以及依赖关系分簇
   # 以实现并行控制
   # 人话：将部分很耗费资源的服务单独丢出去
   # 将整个并行改成串行 + 并行
-  alias Lily.Graph.{Node, Edge}
+  alias Quincunx.Lily.Graph.{Node, Edge}
 
   @type cluster_name :: atom() | String.t() | [cluster_name()]
 
@@ -452,7 +452,7 @@ defmodule Lily.Graph.Cluster do
   defstruct node_colors: %{},
             merge_groups: []
 
-  @spec paint_graph([Node.t()], MapSet.t(Edge.t()), Lily.Graph.Cluster.t()) ::
+  @spec paint_graph([Node.t()], MapSet.t(Edge.t()), Quincunx.Lily.Graph.Cluster.t()) ::
           %{Node.id() => cluster_name()}
   @doc "Return `%{node_name => final_cluster_name}`"
   def paint_graph(sorted_nodes, edges, %__MODULE__{} = clusters) do
@@ -483,9 +483,9 @@ defmodule Lily.Graph.Cluster do
   end
 end
 
-defmodule Lily.History do
+defmodule Quincunx.Lily.History do
   defmodule Operation do
-    alias Lily.Graph.{Node, Edge, Portkey}
+    alias Quincunx.Lily.Graph.{Node, Edge, Portkey}
 
     @type topology_mutation ::
             {:add_node, Node.t()}
@@ -507,7 +507,7 @@ defmodule Lily.History do
     @type t :: topology_mutation() | data_interventions() | input_declar()
   end
 
-  alias Lily.Graph
+  alias Quincunx.Lily.Graph
 
   @type inputs_bundle :: %{
           :inputs => %{Lily.Graph.Portkey.t() => any()},
@@ -615,9 +615,9 @@ end
 defmodule LilyCompilerTest do
   use ExUnit.Case
 
-  alias Lily.Graph
-  alias Lily.Graph.{Node, Edge, Cluster}
-  alias Lily.Compiler
+  alias Quincunx.Lily.Graph
+  alias Quincunx.Lily.Graph.{Node, Edge, Cluster}
+  alias Quincunx.Lily.Compiler
 
   defp build_test_graph do
     nodes = [
@@ -761,15 +761,15 @@ Generating cover results ...
 
 | Percentage | Module                 |
 |------------|------------------------|
-|      0.00% | Lily.Graph.Edge        |
-|      0.00% | Lily.History           |
-|     62.86% | Lily.Graph             |
-|     97.92% | Lily.Compiler          |
+|      0.00% | Quincunx.Lily.Graph.Edge        |
+|      0.00% | Quincunx.Lily.History           |
+|     62.86% | Quincunx.Lily.Graph             |
+|     97.92% | Quincunx.Lily.Compiler          |
 |    100.00% | Lily                   |
-|    100.00% | Lily.Graph.Cluster     |
-|    100.00% | Lily.Graph.Node        |
-|    100.00% | Lily.Graph.Portkey     |
-|    100.00% | Lily.History.Operation |
+|    100.00% | Quincunx.Lily.Graph.Cluster     |
+|    100.00% | Quincunx.Lily.Graph.Node        |
+|    100.00% | Quincunx.Lily.Graph.Portkey     |
+|    100.00% | Quincunx.Lily.History.Operation |
 |------------|------------------------|
 |     70.94% | Total                  |
 
