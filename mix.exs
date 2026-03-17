@@ -20,9 +20,9 @@ defmodule Quincunx.MixProject do
 
   defp deps do
     [
-      {:orchid,
-       git: "https://github.com/SynapticStrings/Orchid.git", branch: "core", override: true},
-      {:orchid_symbiont, git: "https://github.com/SynapticStrings/OrchidSymbiont.git"}
+      {:orchid, "~> 0.5"},
+      {:orchid_symbiont, git: "https://github.com/SynapticStrings/OrchidSymbiont.git"},
+      {:orchid_stratum, git: "https://github.com/SynapticStrings/OrchidStratum.git"}
     ]
   end
 end
