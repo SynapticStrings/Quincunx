@@ -1,3 +1,0 @@
-defmodule Quincunx.Session.Storage.Blob do
-  # ...
-end

@@ -21,8 +21,8 @@ defmodule Quincunx.MixProject do
   defp deps do
     [
       {:orchid, "~> 0.5"},
-      {:orchid_symbiont, git: "https://github.com/SynapticStrings/OrchidSymbiont.git"},
-      {:orchid_stratum, git: "https://github.com/SynapticStrings/OrchidStratum.git"}
+      {:orchid_symbiont, "~> 0.1"},
+      {:orchid_stratum, "~> 0.1"}
     ]
   end
 end

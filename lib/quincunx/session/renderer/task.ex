@@ -18,9 +18,11 @@ defmodule Quincunx.Session.Renderer.RenderTask do
       # To:   [[{SegA, R1}, {SegB, R1}], [{SegA, R2}, {SegB, R2}]]
       pipeline_stages = align_stages(compiled_segments)
 
+      storage_ctx = Keyword.get(opts, :storage)
+
       # 3. Execute Stage by Stage (Barrier)
       Enum.reduce_while(pipeline_stages, {:ok, initial_board}, fn stage_batch, {:ok, board} ->
-        case execute_stage_barrier(stage_batch, board, opts) do
+        case execute_stage_barrier(stage_batch, board, storage_ctx, opts) do
           {:ok, new_board} -> {:cont, {:ok, new_board}}
           {:error, reason} -> {:halt, {:error, reason}}
         end
@@ -49,7 +51,7 @@ defmodule Quincunx.Session.Renderer.RenderTask do
 
   # --- Barrier Logic ---
 
-  defp execute_stage_barrier(batch, blackboard, opts) do
+  defp execute_stage_barrier(batch, blackboard, storage_ctx, opts) do
     # Configuration
     concurrency = opts[:concurrency] || System.schedulers_online()
     timeout = opts[:timeout] || 30_000
@@ -60,7 +62,7 @@ defmodule Quincunx.Session.Renderer.RenderTask do
       Task.async_stream(
         batch,
         fn {seg_id, recipe} ->
-          process_segment_recipe(seg_id, recipe, blackboard)
+          process_segment_recipe(seg_id, recipe, blackboard, storage_ctx)
         end,
         max_concurrency: concurrency,
         timeout: timeout,
@@ -84,7 +86,7 @@ defmodule Quincunx.Session.Renderer.RenderTask do
 
   # --- Worker Logic (Running inside Task) ---
 
-  defp process_segment_recipe(seg_id, recipe, blackboard) do
+  defp process_segment_recipe(seg_id, recipe, blackboard, storage_ctx) do
     # 1. Resolve Requires (Dynamic Inputs from Blackboard)
     # The `recipe.requires` field (from Lily) tells us what ports we need from previous stages.
     # Note: Orchid.Recipe struct doesn't standardly have :requires field,
@@ -119,13 +121,22 @@ defmodule Quincunx.Session.Renderer.RenderTask do
 
     # 3. Run Orchid
     # We use Serial executor inside the task to avoid spawning more processes.
-    run_opts = [
+    base_run_opts = [
       executor_and_opts: {Orchid.Executor.Serial, []},
       # Pass segment ID in baggage for logging/debugging
       baggage: [segment_id: seg_id]
     ]
 
-    case Orchid.run(recipe, dynamic_inputs, run_opts) do
+    {recipe_to_run, final_run_opts} =
+      case storage_ctx do
+        %Quincunx.Session.Storage{meta_conf: meta, blob_conf: blob} ->
+          OrchidStratum.apply_cache(recipe, meta, blob, base_run_opts)
+
+        nil ->
+          {recipe, base_run_opts}
+      end
+
+    case Orchid.run(recipe_to_run, dynamic_inputs, final_run_opts) do
       {:ok, results} ->
         {:ok, seg_id, results}
 

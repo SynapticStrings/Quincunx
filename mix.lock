@@ -1,6 +1,6 @@
 %{
   "orchid": {:hex, :orchid, "0.5.6", "efac5740e906d1cc1d6461eecfcb83196f4ec45424eeb60363097c6eb3c6481d", [:mix], [{:telemetry, "~> 1.3", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "a93c9be594e6ec25fca60d8816516f3d892af30813d9692f3d83aef2d5acb252"},
-  "orchid_stratum": {:git, "https://github.com/SynapticStrings/OrchidStratum.git", "810873d903a1bb0ac5e66126364097214dd9d64e", []},
-  "orchid_symbiont": {:git, "https://github.com/SynapticStrings/OrchidSymbiont.git", "9fad09ce6aa4e779e4886838be183446757fbd7e", []},
+  "orchid_stratum": {:hex, :orchid_stratum, "0.1.0", "8bac49b9c3be1b52e5b921210f3433950f6272b8e1e4811b3e2d4b4977fc1104", [:mix], [{:orchid, "~> 0.5", [hex: :orchid, repo: "hexpm", optional: false]}], "hexpm", "5f6e255be397613bda5e48095f27933dfba5f4dab4729694848cf8e7e62f3817"},
+  "orchid_symbiont": {:hex, :orchid_symbiont, "0.1.3", "6368053922034941a233c32b5a7b037ca8280647748600f8feb8ff2f4988f4a2", [:mix], [{:orchid, "~> 0.5", [hex: :orchid, repo: "hexpm", optional: false]}], "hexpm", "58fdc2fbe05107ff5cfa20d70edaf455a181dbcdd481e5099e7114362d1d4b81"},
   "telemetry": {:hex, :telemetry, "1.4.1", "ab6de178e2b29b58e8256b92b382ea3f590a47152ca3651ea857a6cae05ac423", [:rebar3], [], "hexpm", "2172e05a27531d3d31dd9782841065c50dd5c3c7699d95266b2edd54c2dafa1c"},
 }
