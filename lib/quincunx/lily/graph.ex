@@ -148,38 +148,31 @@ defmodule Quincunx.Lily.Graph do
 
   @spec topological_sort(t()) :: {:ok, [Node.id()]} | {:error, :cycle_detected}
   def topological_sort(%__MODULE__{} = graph) do
-    # 1. 初始化所有节点的入度 (In-degree) 为 0
     init_in_degrees = Map.keys(graph.nodes) |> Map.new(fn id -> {id, 0} end) |> Enum.into(%{})
 
-    # 2. 遍历所有边，计算每个节点的真实入度
     in_degrees =
       Enum.reduce(graph.edges, init_in_degrees, fn edge, acc ->
         Map.update!(acc, edge.to_node, &(&1 + 1))
       end)
 
-    # 3. 找出所有入度为 0 的游离节点（图的起始触发点）
     zero_in_degree_nodes =
       in_degrees
       |> Enum.filter(fn {_id, degree} -> degree == 0 end)
       |> Enum.map(fn {id, _degree} -> id end)
 
-    # 4. 开始递归剥离图
     do_topo_sort(zero_in_degree_nodes, in_degrees, graph, [])
   end
 
-  # Kahn 算法的核心递归
+  # Kahn algo
   defp do_topo_sort([], _in_degrees, graph, sorted_acc) do
-    # 如果已排序的节点数量等于图中的总节点数，说明排序成功
     if length(sorted_acc) == map_size(graph.nodes) do
       {:ok, Enum.reverse(sorted_acc)}
     else
-      # 还有节点没被剥离，说明它们互相依赖，形成了死锁（环）！
       {:error, :cycle_detected}
     end
   end
 
   defp do_topo_sort([node_id | rest_zero_nodes], in_degrees, graph, sorted_acc) do
-    # 遍历入度为 0 的边，将它们指向的下游节点的入度减 1
     {new_in_degrees, new_zero_nodes} =
       graph.edges
       |> Enum.filter(&(&1.from_node == node_id))
@@ -187,14 +180,12 @@ defmodule Quincunx.Lily.Graph do
         new_deg = deg_acc[edge.to_node] - 1
         deg_acc = Map.put(deg_acc, edge.to_node, new_deg)
 
-        # 如果下游节点的入度变成了 0，将其加入下一轮待处理队列
         case new_deg do
           0 -> {deg_acc, [edge.to_node | zero_acc]}
           _ -> {deg_acc, zero_acc}
         end
       end)
 
-    # 递归处理下一批入度为 0 的节点
     do_topo_sort(new_zero_nodes, new_in_degrees, graph, [node_id | sorted_acc])
   end
 end
