@@ -12,11 +12,11 @@ defmodule Quincunx.Session.Renderer.RenderTask do
   @spec run([Segment.t()], keyword()) :: {:ok, blackboard()} | {:error, any()}
   def run(segments, initial_board \\ %{}, opts \\ []) do
     # 1. Compile and Bind
-    with {:ok, compiled_segments} <- Segment.compile_to_recipes(segments) do
+    with {:ok, compiled_recipes} <- Segment.compile_to_recipes(segments) do
       # 2. Align Stages (Transpose)
       # From: [SegA([R1, R2]), SegB([R1, R2])]
       # To:   [[{SegA, R1}, {SegB, R1}], [{SegA, R2}, {SegB, R2}]]
-      pipeline_stages = align_stages(compiled_segments)
+      pipeline_stages = align_stages(compiled_recipes)
 
       storage_ctx = Keyword.get(opts, :storage)
 
@@ -32,6 +32,7 @@ defmodule Quincunx.Session.Renderer.RenderTask do
 
   defp align_stages(segments) do
     segments
+    |> List.wrap()
     |> Enum.map(fn seg -> length(seg.compiled_recipes) end)
     |> Enum.uniq()
     |> case do
@@ -42,6 +43,7 @@ defmodule Quincunx.Session.Renderer.RenderTask do
     end
 
     segments
+    |> List.wrap()
     |> Enum.map(fn seg ->
       Enum.map(seg.compiled_recipes, &{seg.id, &1})
     end)
@@ -61,8 +63,8 @@ defmodule Quincunx.Session.Renderer.RenderTask do
     stream =
       Task.async_stream(
         batch,
-        fn {seg_id, recipe} ->
-          process_segment_recipe(seg_id, recipe, blackboard, storage_ctx)
+        fn {seg_id, context} ->
+          process_segment_recipe(seg_id, context.recipe, blackboard, storage_ctx)
         end,
         max_concurrency: concurrency,
         timeout: timeout,

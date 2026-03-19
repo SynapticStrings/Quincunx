@@ -53,10 +53,10 @@ defmodule Quincunx.Session.Segment do
   end
 
   @spec compile_to_recipes([t()] | t()) ::
-          {:ok, Compiler.Context.t() | [t()]} | {:error, term()}
+          {:ok, Compiler.Context.t() | [Compiler.Context.t()]} | {:error, term()}
   def compile_to_recipes(%__MODULE__{} = segment) do
     case compile_to_recipes([segment]) do
-      {:ok, [compiled_seg]} -> {:ok, compiled_seg.compiled_recipes}
+      {:ok, [compiled_seg]} -> {:ok, compiled_seg}
       {:error, _} = err -> err
     end
   end
