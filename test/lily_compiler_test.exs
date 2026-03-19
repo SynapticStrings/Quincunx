@@ -8,18 +8,18 @@ defmodule LilyCompilerTest do
   defp build_test_graph do
     nodes = [
       %Node{id: :split, impl: :dummy, inputs: [:val], outputs: [:out_a, :out_b]},
-      %Node{id: :add,   impl: :dummy, inputs: [:a, :b], outputs: [:res]},
-      %Node{id: :mul,   impl: :dummy, inputs: [:a, :b], outputs: [:res]},
-      %Node{id: :inc,   impl: :dummy, inputs: [:val], outputs: [:res]},
-      %Node{id: :dec,   impl: :dummy, inputs: [:val], outputs: [:res]}
+      %Node{id: :add, impl: :dummy, inputs: [:a, :b], outputs: [:res]},
+      %Node{id: :mul, impl: :dummy, inputs: [:a, :b], outputs: [:res]},
+      %Node{id: :inc, impl: :dummy, inputs: [:val], outputs: [:res]},
+      %Node{id: :dec, impl: :dummy, inputs: [:val], outputs: [:res]}
     ]
 
     edges = [
       %Edge{from_node: :split, from_port: :out_a, to_node: :inc, to_port: :val},
       %Edge{from_node: :split, from_port: :out_b, to_node: :dec, to_port: :val},
-      %Edge{from_node: :inc,   from_port: :res,   to_node: :add, to_port: :a},
-      %Edge{from_node: :dec,   from_port: :res,   to_node: :add, to_port: :b},
-      %Edge{from_node: :add,   from_port: :res,   to_node: :mul, to_port: :a}
+      %Edge{from_node: :inc, from_port: :res, to_node: :add, to_port: :a},
+      %Edge{from_node: :dec, from_port: :res, to_node: :add, to_port: :b},
+      %Edge{from_node: :add, from_port: :res, to_node: :mul, to_port: :a}
     ]
 
     graph = Graph.new()
@@ -29,16 +29,21 @@ defmodule LilyCompilerTest do
     graph
   end
 
-  test "图拓扑排序正确 (Topological Sort)" do
-    graph = build_test_graph()
-    {:ok, sorted_ids} = Graph.topological_sort(graph)
+  describe "graph test" do
+    test "ensure correct topological sort" do
+      graph = build_test_graph()
+      {:ok, sorted_ids} = Graph.topological_sort(graph)
 
-    assert hd(sorted_ids) == :split
+      assert hd(sorted_ids) == :split
 
-    assert Enum.find_index(sorted_ids, &(&1 == :add)) > Enum.find_index(sorted_ids, &(&1 == :inc))
-    assert Enum.find_index(sorted_ids, &(&1 == :add)) > Enum.find_index(sorted_ids, &(&1 == :dec))
+      assert Enum.find_index(sorted_ids, &(&1 == :add)) >
+               Enum.find_index(sorted_ids, &(&1 == :inc))
 
-    assert List.last(sorted_ids) == :mul
+      assert Enum.find_index(sorted_ids, &(&1 == :add)) >
+               Enum.find_index(sorted_ids, &(&1 == :dec))
+
+      assert List.last(sorted_ids) == :mul
+    end
   end
 
   test "编译器：单集群编译与悬空参数识别" do
@@ -61,10 +66,10 @@ defmodule LilyCompilerTest do
     cluster_declara = %Cluster{
       node_colors: %{
         split: :cpu_cluster,
-        inc:   :cpu_cluster,
-        dec:   :cpu_cluster,
-        add:   :gpu_cluster,
-        mul:   :gpu_cluster
+        inc: :cpu_cluster,
+        dec: :cpu_cluster,
+        add: :gpu_cluster,
+        mul: :gpu_cluster
       }
     }
 
@@ -91,18 +96,18 @@ defmodule LilyCompilerTest do
 
     # 模拟 History 得到的 init_data (包含 inputs, overrides 等)
     init_data = %{
-      inputs: %{ {:port, :split, :val} => 42 },
-      overrides: %{ {:port, :inc, :res} => 100 },
+      inputs: %{{:port, :split, :val} => 42},
+      overrides: %{{:port, :inc, :res} => 100},
       offsets: %{}
     }
 
     cluster_declara = %Cluster{
       node_colors: %{
         split: :cpu_cluster,
-        inc:   :cpu_cluster,
-        dec:   :cpu_cluster,
-        add:   :gpu_cluster,
-        mul:   :gpu_cluster
+        inc: :cpu_cluster,
+        dec: :cpu_cluster,
+        add: :gpu_cluster,
+        mul: :gpu_cluster
       }
     }
 
@@ -113,7 +118,8 @@ defmodule LilyCompilerTest do
 
     cpu_recipe = Enum.find(static_recipes, &(&1.recipe.name == :cpu_cluster))
     assert :split_val in cpu_recipe.requires
-    assert cpu_recipe.overrides == nil # 确保没有包含侧载数据
+    # 确保没有包含侧载数据
+    assert cpu_recipe.overrides == nil
 
     # 第二阶段：数据绑定 (Downstream Enumerable Mapping)
     final_bundles = Compiler.bind_interventions(static_recipes, init_data)

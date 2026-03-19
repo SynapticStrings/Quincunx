@@ -16,36 +16,27 @@ defmodule Quincunx.Session.Storage do
 
   defstruct [:meta_conf, :blob_conf]
 
+  alias OrchidStratum.MetaStorage.EtsAdapter, as: EtsMetaStorage
+  alias OrchidStratum.BlobStorage.EtsAdapter, as: EtsBlobStorage
+
   @doc """
   Initializes a new, isolated local storage layer based on ETS.
   The calling process becomes the owner of these ETS tables.
   """
   @spec new() :: t()
   def new do
+    meta_ref = EtsMetaStorage.init()
+    blob_ref = EtsBlobStorage.init()
+
     new(
-      {
-        OrchidStratum.MetaStorage.EtsAdapter,
-        fn -> OrchidStratum.MetaStorage.EtsAdapter.init() end
-      },
-      {OrchidStratum.BlobStorage.EtsAdapter,
-       fn -> OrchidStratum.BlobStorage.EtsAdapter.init() end}
+      {EtsMetaStorage, meta_ref},
+      {EtsBlobStorage, blob_ref}
     )
   end
 
   @doc """
   Create a configuration from custom adapters.
   """
-  def new({meta_mod, meta_factory}, {blob_mod, blob_factory})
-      when is_function(meta_factory) and is_function(blob_factory) do
-    meta_ref = meta_factory.()
-    blob_ref = blob_factory.()
-
-    %__MODULE__{
-      meta_conf: {meta_mod, meta_ref},
-      blob_conf: {blob_mod, blob_ref}
-    }
-  end
-
   @spec new({module(), term()}, {module(), term()}) :: t()
   def new(meta_conf, blob_conf) do
     %__MODULE__{
