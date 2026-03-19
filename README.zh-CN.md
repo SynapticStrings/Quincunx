@@ -47,3 +47,16 @@ Quincunx 通过 **`Cluster` (着色分簇)** 应对异构设备的调度：
 - `Quincunx.Session.Storage`： 存储生命周期管理器。通常由宿主的上层建筑（如一个具体的文档 GenServer）在 `init/1` 时调用 `new/0` 颁发。它返回当前会话专用的 Stratum（缓存策略）适配器凭证。配合 `RenderTask` 时，保证数据的生命周期与会话进程强绑定。
 - `Quincunx.Session.Renderer.RenderTask`： 无状态的批量渲染流水线（Pipeline）。它接收一组需要更新的 `Segment` 和前驱输出积累的 `Blackboard`，拉平所有的执行阶段（Align Stages），应用由 `Storage` 提供的旁路缓存中间件，随后通过高并发流 (`Task.async_stream`) 压榨多核算力，最终向外部返回一个新的黑板全貌。
 - `Quincunx.Session.Renderer.Blackboard`： 阶段执行之间的“动态黑板（运行时数据总线）”。在前一个 Stage 完成后，所有输出结果会被脱水或直接挂载到黑板上。当下一个阶段启动时，需要的动态依赖（Require Keys）只需通过 `{segment_id, port_name}` 从黑板上检索即可。
+
+## 路线图
+
+- [x] 历史记录
+- [x] 基于节点和边声明的 DAG
+    - [x] 和 Orchid Recipe 的转换
+- [x] 大图分簇编译成多个（串行的） Orchid Recipe
+- [x] 缓存机制的并入
+- [ ] 一个完整的 OTP 组件
+    - 可恢复的 Orchid Recipe
+- [ ] 序列化与反序列化
+- [ ] 任务中断与恢复
+- [ ] 插件

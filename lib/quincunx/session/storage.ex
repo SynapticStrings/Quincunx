@@ -7,9 +7,11 @@ defmodule Quincunx.Session.Storage do
   keep the returned struct in its state.
   """
 
+  @type storage :: term()
+
   @type t :: %__MODULE__{
-          meta_conf: {module(), term()},
-          blob_conf: {module(), term()}
+          meta_conf: {module(), storage()},
+          blob_conf: {module(), storage()}
         }
 
   defstruct [:meta_conf, :blob_conf]
@@ -20,18 +22,30 @@ defmodule Quincunx.Session.Storage do
   """
   @spec new() :: t()
   def new do
-    meta_ref = OrchidStratum.MetaStorage.EtsAdapter.init()
-    blob_ref = OrchidStratum.BlobStorage.EtsAdapter.init()
-
-    %__MODULE__{
-      meta_conf: {OrchidStratum.MetaStorage.EtsAdapter, meta_ref},
-      blob_conf: {OrchidStratum.BlobStorage.EtsAdapter, blob_ref}
-    }
+    new(
+      {
+        OrchidStratum.MetaStorage.EtsAdapter,
+        fn -> OrchidStratum.MetaStorage.EtsAdapter.init() end
+      },
+      {OrchidStratum.BlobStorage.EtsAdapter,
+       fn -> OrchidStratum.BlobStorage.EtsAdapter.init() end}
+    )
   end
 
   @doc """
-  Create a configuration from custom adapters (e.g., database-backed or out-of-core memory).
+  Create a configuration from custom adapters.
   """
+  def new({meta_mod, meta_factory}, {blob_mod, blob_factory})
+      when is_function(meta_factory) and is_function(blob_factory) do
+    meta_ref = meta_factory.()
+    blob_ref = blob_factory.()
+
+    %__MODULE__{
+      meta_conf: {meta_mod, meta_ref},
+      blob_conf: {blob_mod, blob_ref}
+    }
+  end
+
   @spec new({module(), term()}, {module(), term()}) :: t()
   def new(meta_conf, blob_conf) do
     %__MODULE__{
