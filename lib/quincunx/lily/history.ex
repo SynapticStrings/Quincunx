@@ -29,7 +29,7 @@ defmodule Quincunx.Lily.History do
           :inputs => %{Graph.Portkey.t() => any()},
           :overrides => %{Graph.Portkey.t() => any()},
           :offsets => %{Graph.Portkey.t() => any()},
-          # :masks => %{Graph.Portkey.t() => any()},
+          :masks => %{Graph.Portkey.t() => any()},
           optional(any()) => any()
         }
 
@@ -72,7 +72,7 @@ defmodule Quincunx.Lily.History do
   """
   @spec resolve(Graph.t(), t()) :: effective_state()
   def resolve(%Graph{} = base_graph, %__MODULE__{undo_stack: undo_stack}) do
-    initial_state = %{graph: base_graph, inputs: %{}, overrides: %{}, offsets: %{}}
+    initial_state = %{graph: base_graph, inputs: %{}, overrides: %{}, offsets: %{}, masks: %{}}
 
     undo_stack
     |> Enum.reverse()
