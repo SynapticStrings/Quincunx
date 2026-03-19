@@ -7,6 +7,9 @@ defmodule Quincunx.Lily.Compiler do
   alias Quincunx.Lily.Graph.{Node, Portkey, Cluster}
 
   defmodule Context do
+    # TODO: modify name to `Quincunx.Lily.RecipeBundles`
+    # It is a container to store some data that orchid or
+    # task runner required.
     @type t :: %__MODULE__{
             recipe: Orchid.Recipe.t(),
             requires: [Portkey.t()],
