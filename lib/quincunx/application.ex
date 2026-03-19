@@ -8,8 +8,8 @@ defmodule Quincunx.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      # Starts a worker by calling: Quincunx.Worker.start_link(arg)
-      # {Quincunx.Worker, arg}
+      {Registry, keys: :unique, name: Quincunx.SessionRegistry},
+      {DynamicSupervisor, name: Quincunx.SessionSupervisor, strategy: :one_for_one}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

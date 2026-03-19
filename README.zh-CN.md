@@ -55,6 +55,7 @@ Quincunx 通过 **`Cluster` (着色分簇)** 应对异构设备的调度：
     - [x] 和 Orchid Recipe 的转换
 - [x] 大图分簇编译成多个（串行的） Orchid Recipe
 - [x] 缓存机制的并入
+- [ ] 重构 RenderTask 模块
 - [ ] 一个完整的 OTP 组件
     - 可恢复的 Orchid Recipe
 - [ ] 序列化与反序列化
