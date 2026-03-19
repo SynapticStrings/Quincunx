@@ -17,6 +17,7 @@ defmodule Quincunx.Lily.History do
     @type data_interventions ::
             {:override, Portkey.t(), data :: any()}
             | {:offset, Portkey.t(), data :: any()}
+            | {:mask, Portkey.t(), data :: any()}
             | {:remove_interventions, Portkey.t()}
 
     @type t :: topology_mutation() | data_interventions() | input_declar()
@@ -28,6 +29,7 @@ defmodule Quincunx.Lily.History do
           :inputs => %{Graph.Portkey.t() => any()},
           :overrides => %{Graph.Portkey.t() => any()},
           :offsets => %{Graph.Portkey.t() => any()},
+          # :masks => %{Graph.Portkey.t() => any()},
           optional(any()) => any()
         }
 
@@ -42,7 +44,7 @@ defmodule Quincunx.Lily.History do
 
   defstruct undo_stack: [], redo_stack: []
 
-  @doc "初始化一个新的历史记录"
+  @doc "Initialize a new History record container."
   def new, do: %__MODULE__{}
 
   @spec push(t(), any()) :: t()
@@ -104,6 +106,10 @@ defmodule Quincunx.Lily.History do
 
   defp apply_operation({:offset, {:port, _, _} = port_key, value}, state) do
     %{state | offsets: Map.put(state.offsets, port_key, value)}
+  end
+
+  defp apply_operation({:mask, {:port, _, _} = port_key, value}, state) do
+    %{state | masks: Map.put(state.masks, port_key, value)}
   end
 
   defp apply_operation({:remove_interventions, {:port, _, _} = port_key}, state) do
