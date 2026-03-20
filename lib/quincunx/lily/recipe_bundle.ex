@@ -3,8 +3,8 @@ defmodule Quincunx.Lily.RecipeBundle do
 
   alias Quincunx.Lily.Graph.{Node, Portkey}
 
-  @type intervention :: nil | %{Portkey.t() => any()}
-
+  @type intervention :: %{} | %{Portkey.t() => any()}
+  @type intervention_name :: atom()
   @type interventions(key) :: %{key => intervention()}
 
   @type t :: %__MODULE__{
@@ -12,7 +12,7 @@ defmodule Quincunx.Lily.RecipeBundle do
           requires: [Portkey.t()],
           exports: [Portkey.t()],
           node_ids: [Node.id()],
-          interventions: interventions(atom())
+          interventions: interventions(intervention_name())
         }
   defstruct [
     :recipe,
@@ -22,16 +22,19 @@ defmodule Quincunx.Lily.RecipeBundle do
     interventions: %{}
   ]
 
-  @spec get_interventions(t(), atom()) :: map()
+  @spec get_interventions(t(), intervention_name()) :: map()
   def get_interventions(%__MODULE__{interventions: interventions}, key),
     do: Map.get(interventions, key, %{})
 
-  def get_intervention(%__MODULE__{} = bundle, key, [port]),
-    do: get_in(get_interventions(bundle, key), port)
+  @spec get_intervention(t(), intervention_name(), Portkey.t()) :: any()
+  def get_intervention(%__MODULE__{} = bundle, key, port),
+    do: get_in(bundle.interventions, [key, port])
 
+  @spec put_interventions(t(), intervention_name(), intervention()) :: t()
   def put_interventions(%__MODULE__{interventions: interventions} = bundle, key, intervention),
     do: %{bundle | interventions: Map.put(interventions, key, intervention)}
 
-  def put_intervention(%__MODULE__{} = bundle, key, [port], value),
-    do: put_interventions(bundle, key, put_in(get_interventions(bundle, key), port, value))
+  @spec put_intervention(t(), atom(), Portkey.t(), any()) ::t()
+  def put_intervention(%__MODULE__{} = bundle, key, port, value),
+    do: put_interventions(bundle, key, put_in(bundle.interventions, [key, port], value))
 end

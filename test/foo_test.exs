@@ -89,12 +89,12 @@ defmodule Quincunx.SegmentBatchTest do
     # 根据 Lily 的设计，绑定后的数据通常存在 Recipe 的 overrides 或 inputs 字段中
     # 这里假设是一个类似 %{inputs: %{key => val}, overrides: ...} 的结构
     # 或者是一个携带数据的 Bundle 结构
-    assert RecipeBundle.get_intervention(gpu_recipe_1, :overrides, [{:port, :node_b, :mid}]) == 100
+    assert RecipeBundle.get_intervention(gpu_recipe_1, :overrides, {:port, :node_b, :mid}) == 100
 
     # 3. 验证 Segment 2 (Graph V1, Value 200)
     gpu_recipe_2 = Enum.find(res_seg2.compiled_recipes, &(&1.recipe.name == :gpu_cluster))
     # 关键验证：虽然拓扑和 Segment 1 一样，但数据必须是独立的 200
-    assert RecipeBundle.get_intervention(gpu_recipe_2, :overrides, [{:port, :node_b, :mid}]) ==
+    assert RecipeBundle.get_intervention(gpu_recipe_2, :overrides, {:port, :node_b, :mid}) ==
              200
 
     # 确保没有发生数据泄漏
