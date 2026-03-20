@@ -3,43 +3,10 @@ defmodule Quincunx.Lily.Compiler do
   The final stage of pure functional pipelines.
   Translates the effective DAG into a sequence of Orchid.Recipe.
   """
-  alias Quincunx.Lily.{Graph, History}
+  alias Quincunx.Lily.{Graph, History, RecipeBundle}
   alias Quincunx.Lily.Graph.{Node, Portkey, Cluster}
 
-  defmodule Context do
-    # TODO: modify name to `Quincunx.Lily.RecipeBundles`
-    # It is a container to store some data that orchid or
-    # task runner required.
-    @type t :: %__MODULE__{
-            recipe: Orchid.Recipe.t(),
-            requires: [Portkey.t()],
-            exports: [Portkey.t()],
-            node_ids: [Node.id()],
-            inputs: nil | %{Portkey.t() => any()},
-            overrides: nil | %{Portkey.t() => any()},
-            offsets: nil | %{Portkey.t() => any()}
-          }
-    defstruct [:recipe, :requires, :exports, :node_ids, :inputs, :overrides, :offsets]
-  end
-
-  @type recipe_manifest :: %{
-          recipe: Orchid.Recipe.t(),
-          requires: [Portkey.t()],
-          exports: [Portkey.t()],
-          node_ids: [Node.id()]
-        }
-
-  @type recipe_with_bundle :: %{
-          recipe: Orchid.Recipe.t(),
-          requires: [Portkey.t()],
-          exports: [Portkey.t()],
-          node_ids: [Node.id()],
-          inputs: %{Portkey.t() => any()},
-          overrides: %{Portkey.t() => any()},
-          offsets: %{Portkey.t() => any()}
-        }
-
-  @spec compile_graph(Graph.t()) :: {:error, :cycle_detected} | {:ok, [Context.t()]}
+  @spec compile_graph(Graph.t()) :: {:error, :cycle_detected} | {:ok, [RecipeBundle.t()]}
   def compile_graph(%Graph{} = graph, cluster_declara \\ %Cluster{}) do
     case Graph.topological_sort(graph) do
       {:error, _} = err ->
@@ -59,7 +26,7 @@ defmodule Quincunx.Lily.Compiler do
     end
   end
 
-  @spec bind_interventions([Context.t()], History.inputs_bundle()) :: [Context.t()]
+  @spec bind_interventions([RecipeBundle.t()], History.inputs_bundle()) :: [RecipeBundle.t()]
   def bind_interventions(static_recipes, %{inputs: inputs, overrides: overrides, offsets: offsets}) do
     Enum.map(static_recipes, fn %{node_ids: node_ids} = static_bundle ->
       local_inputs = filter_port_data(inputs, node_ids)
@@ -78,7 +45,7 @@ defmodule Quincunx.Lily.Compiler do
 
     {requires, exports} = calculate_boundaries(node_ids, graph)
 
-    %Context{
+    %RecipeBundle{
       recipe: Orchid.Recipe.new(steps, name: cluster_name),
       requires: requires,
       exports: exports,

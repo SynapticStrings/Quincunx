@@ -5,14 +5,14 @@ defmodule Quincunx.Session.Segment do
   """
 
   alias Quincunx.Lily.History.Operation
-  alias Quincunx.Lily.{Graph, History, Compiler, Graph.Cluster}
+  alias Quincunx.Lily.{Graph, History, Compiler, Graph.Cluster, RecipeBundle}
 
   @type id :: atom() | String.t()
 
   @type t :: %__MODULE__{
           id: id(),
           graph_with_cluster: {Graph.t(), Cluster.t()},
-          compiled_recipes: nil | [Compiler.recipe_with_bundle()],
+          compiled_recipes: nil | [RecipeBundle.t()],
           history: History.t(),
           snapshots: %{optional(atom()) => any()},
           extra: map()
@@ -53,7 +53,7 @@ defmodule Quincunx.Session.Segment do
   end
 
   @spec compile_to_recipes([t()] | t()) ::
-          {:ok, Compiler.Context.t() | [Compiler.Context.t()]} | {:error, term()}
+          {:ok, RecipeBundle.t() | [RecipeBundle.t()]} | {:error, term()}
   def compile_to_recipes(%__MODULE__{} = segment), do: compile_to_recipes([segment])
 
   def compile_to_recipes(segments) when is_list(segments) do
