@@ -1,6 +1,7 @@
 defmodule LilyCompilerTest do
   use ExUnit.Case
 
+  alias Quincunx.Lily.RecipeBundle
   alias Quincunx.Lily.Graph
   alias Quincunx.Lily.Graph.{Node, Edge, Cluster}
   alias Quincunx.Lily.Compiler
@@ -99,7 +100,8 @@ defmodule LilyCompilerTest do
       init_data = %{
         inputs: %{{:port, :split, :val} => 42},
         overrides: %{{:port, :inc, :res} => 100},
-        offsets: %{}
+        offsets: %{},
+        masks: %{}
       }
 
       cluster_declara = %Cluster{
@@ -120,7 +122,7 @@ defmodule LilyCompilerTest do
       cpu_recipe = Enum.find(static_recipes, &(&1.recipe.name == :cpu_cluster))
       assert :split_val in cpu_recipe.requires
       # 确保没有包含侧载数据
-      assert cpu_recipe.overrides == nil
+      assert map_size(RecipeBundle.get_interventions(cpu_recipe, :overrides)) == 0
 
       # 第二阶段：数据绑定 (Downstream Enumerable Mapping)
       final_bundles = Compiler.bind_interventions(static_recipes, init_data)
@@ -130,11 +132,12 @@ defmodule LilyCompilerTest do
       gpu_bundle = Enum.find(final_bundles, &(&1.recipe.name == :gpu_cluster))
 
       # CPU 集群包含了 :split 的 input 和 :inc 的 override
-      assert cpu_bundle.inputs[{:port, :split, :val}] == 42
-      assert cpu_bundle.overrides[{:port, :inc, :res}] == 100
+      assert RecipeBundle.get_intervention(cpu_bundle, :inputs, [{:port, :split, :val}]) == 42
+
+      assert RecipeBundle.get_intervention(cpu_bundle, :overrides, [{:port, :inc, :res}]) == 100
 
       # GPU 集群没有任何干预数据
-      assert map_size(gpu_bundle.overrides) == 0
+      assert map_size(RecipeBundle.get_interventions(gpu_bundle, :overrides)) == 0
     end
   end
 end

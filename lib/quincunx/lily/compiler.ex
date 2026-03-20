@@ -27,13 +27,16 @@ defmodule Quincunx.Lily.Compiler do
   end
 
   @spec bind_interventions([RecipeBundle.t()], History.inputs_bundle()) :: [RecipeBundle.t()]
-  def bind_interventions(static_recipes, %{inputs: inputs, overrides: overrides, offsets: offsets}) do
+  def bind_interventions(
+        static_recipes,
+        inputs_bundles
+      ) do
     Enum.map(static_recipes, fn %{node_ids: node_ids} = static_bundle ->
-      local_inputs = filter_port_data(inputs, node_ids)
-      local_overrides = filter_port_data(overrides, node_ids)
-      local_offsets = filter_port_data(offsets, node_ids)
-
-      %{static_bundle | overrides: local_overrides, offsets: local_offsets, inputs: local_inputs}
+      Enum.reduce(
+        Enum.map(inputs_bundles, fn {k, v} -> {k, filter_port_data(v, node_ids)} end),
+        static_bundle,
+        fn {k, v}, acc -> RecipeBundle.put_interventions(acc, k, v) end
+      )
     end)
   end
 
@@ -95,7 +98,8 @@ defmodule Quincunx.Lily.Compiler do
       |> Enum.map(&Portkey.to_orchid_key({:port, &1.from_node, &1.from_port}))
 
     # when REAL Outputs may
-    dangling_outputs = Enum.flat_map(node_ids_in_cluster, fn node_id ->
+    dangling_outputs =
+      Enum.flat_map(node_ids_in_cluster, fn node_id ->
         node = graph.nodes[node_id]
         out_edges = Graph.get_out_edges(graph, node_id)
 

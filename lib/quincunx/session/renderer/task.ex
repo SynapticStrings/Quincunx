@@ -2,8 +2,7 @@ defmodule Quincunx.Session.Renderer.RenderTask do
   alias Quincunx.Session.Segment
 
   @type blackboard :: %{
-          optional({Segment.id(), Quincunx.Lily.Graph.Portkey.t()}) =>
-            Orchid.Param.t() | any()
+          optional({Segment.id(), Quincunx.Lily.Graph.Portkey.t()}) => Orchid.Param.t() | any()
         }
 
   @doc """
@@ -37,9 +36,11 @@ defmodule Quincunx.Session.Renderer.RenderTask do
     |> Enum.uniq()
     |> case do
       [foo, bar | _] ->
-        raise ArgumentError, "Segments have inconsistent recipe lengths: #{inspect(foo)} and #{inspect(bar)}"
+        raise ArgumentError,
+              "Segments have inconsistent recipe lengths: #{inspect(foo)} and #{inspect(bar)}"
 
-      _ -> nil
+      _ ->
+        nil
     end
 
     segments

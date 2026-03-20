@@ -2,15 +2,25 @@ defmodule Quincunx.SegmentBatchTest do
   use ExUnit.Case
 
   alias Quincunx.Session.Segment
-  alias Quincunx.Lily.{Graph, History}
+  alias Quincunx.Lily.{Graph, History, RecipeBundle}
   alias Quincunx.Lily.Graph.{Node, Edge, Cluster}
 
   # --- 辅助函数：构建一个基础图 ---
   # A(input) -> B(process) -> C(output)
   defp build_graph_v1 do
     Graph.new()
-    |> Graph.add_node(%Node{id: :node_a, impl: fn _, _ -> {:ok, Orchid.Param.new(:mid1, :any)} end, inputs: [:in], outputs: [:mid]})
-    |> Graph.add_node(%Node{id: :node_b, impl: fn _, _ -> {:ok, Orchid.Param.new(:out, :any)} end, inputs: [:mid], outputs: [:out]})
+    |> Graph.add_node(%Node{
+      id: :node_a,
+      impl: fn _, _ -> {:ok, Orchid.Param.new(:mid1, :any)} end,
+      inputs: [:in],
+      outputs: [:mid]
+    })
+    |> Graph.add_node(%Node{
+      id: :node_b,
+      impl: fn _, _ -> {:ok, Orchid.Param.new(:out, :any)} end,
+      inputs: [:mid],
+      outputs: [:out]
+    })
     |> Graph.add_edge(Edge.new(:node_a, :mid, :node_b, :mid))
   end
 
@@ -40,7 +50,8 @@ defmodule Quincunx.SegmentBatchTest do
       |> History.push({:override, {:port, :node_b, :mid}, 100})
 
     seg1 = Segment.new(:seg_1, graph_v1, cluster_v1)
-    seg1 = %{seg1 | history: hist1} # 手动注入 history，模拟编辑
+    # 手动注入 history，模拟编辑
+    seg1 = %{seg1 | history: hist1}
 
     # Segment 2: 同构图，但 Override node_a 的 :in 端口为 200
     hist2 =
@@ -64,9 +75,9 @@ defmodule Quincunx.SegmentBatchTest do
     assert length(results) == 3
 
     # 提取编译后的 Segment
-    res_seg1 = Enum.find(results, & &1.id == :seg_1)
-    res_seg2 = Enum.find(results, & &1.id == :seg_2)
-    res_seg3 = Enum.find(results, & &1.id == :seg_3)
+    res_seg1 = Enum.find(results, &(&1.id == :seg_1))
+    res_seg2 = Enum.find(results, &(&1.id == :seg_2))
+    res_seg3 = Enum.find(results, &(&1.id == :seg_3))
 
     # 2. 验证 Segment 1 (Graph V1, Value 100)
     # 按照 Cluster 定义，应该生成 CPU 和 GPU 两个 Recipe
@@ -78,15 +89,17 @@ defmodule Quincunx.SegmentBatchTest do
     # 根据 Lily 的设计，绑定后的数据通常存在 Recipe 的 overrides 或 inputs 字段中
     # 这里假设是一个类似 %{inputs: %{key => val}, overrides: ...} 的结构
     # 或者是一个携带数据的 Bundle 结构
-    assert gpu_recipe_1.overrides[{:port, :node_b, :mid}] == 100
+    assert RecipeBundle.get_intervention(gpu_recipe_1, :overrides, [{:port, :node_b, :mid}]) == 100
 
     # 3. 验证 Segment 2 (Graph V1, Value 200)
     gpu_recipe_2 = Enum.find(res_seg2.compiled_recipes, &(&1.recipe.name == :gpu_cluster))
     # 关键验证：虽然拓扑和 Segment 1 一样，但数据必须是独立的 200
-    assert gpu_recipe_2.overrides[{:port, :node_b, :mid}] == 200
+    assert RecipeBundle.get_intervention(gpu_recipe_2, :overrides, [{:port, :node_b, :mid}]) ==
+             200
 
     # 确保没有发生数据泄漏
-    assert gpu_recipe_1.overrides != gpu_recipe_2.overrides
+    assert RecipeBundle.get_interventions(gpu_recipe_1, :overrides) !=
+             RecipeBundle.get_interventions(gpu_recipe_2, :overrides)
 
     # 4. 验证 Segment 3 (异构图)
     # 它的 Recipe 结构应该完全不同

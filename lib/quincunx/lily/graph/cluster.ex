@@ -28,7 +28,13 @@ defmodule Quincunx.Lily.Graph.Cluster do
       end
     end)
     # normalize clusters
-    |> Enum.map(fn {k, v} -> {k, case v do v when is_list(v) -> Enum.sort(v); v -> v end} end)
+    |> Enum.map(fn {k, v} ->
+      {k,
+       case v do
+         v when is_list(v) -> Enum.sort(v)
+         v -> v
+       end}
+    end)
     |> Enum.into(%{})
   end
 
