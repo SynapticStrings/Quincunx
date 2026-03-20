@@ -54,7 +54,7 @@ Because the base Lily Graph is immutable, Quincunx introduces a **History State 
 
 High-performance incremental rendering relies heavily on caching. Quincunx seamlessly integrates **OrchidStratum**, a content-addressable caching middleware:
 
-1.  **Content-Addressable Signatures**: When a node is about to execute, the system calculates a SHA-256 fingerprint ($\mathrm{StepKey} = \mathrm{SHA256}(\mathrm{Impl} \parallel \mathrm{InputHashes} \parallel \mathrm{SortedOpts})$). A cache hit immediately swaps heavy computations with lightweight memory references.
+1.  **Content-Addressable Signatures**: When a node is about to execute, the system calculates a SHA-256 fingerprint ( $\mathrm{StepKey} = \mathrm{SHA256}(\mathrm{Impl} \parallel \mathrm{InputHashes} \parallel \mathrm{SortedOpts})$ ). A cache hit immediately swaps heavy computations with lightweight memory references.
 2.  **Session-Scoped Isolation**: Unlike global cache pools, Quincunx provisions isolated `Storage` per document/session. Leveraging the BEAM's process semantics, each session holds strictly isolated, unnamed ETS tables. **When a document process terminates, the VM instantly garbage collects the associated cache—yielding zero memory leaks and zero cross-talk.**
 
 ### Heterogeneous Device Scheduling
