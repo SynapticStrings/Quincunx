@@ -77,13 +77,13 @@ defmodule LilyGraphChangeTest do
     assert [_, _] = Graph.get_in_edges(graph, :_3)
     assert [_] = Graph.get_in_edges(graph, :_4)
 
-    # Enum.reduce(
-    #   records,
-    #   Quincunx.Session.Segment.new(:test, graph),
-    #   &Quincunx.Session.Segment.apply_operation(&2, &1)
-    # )
-    # |> Quincunx.Session.Segment.compile_to_recipes()
-    # |> elem(1)
+    Enum.reduce(
+      records,
+      Quincunx.Session.Segment.new(:test, graph),
+      &Quincunx.Session.Segment.apply_operation(&2, &1)
+    )
+    |> Quincunx.Session.Segment.compile_to_recipes()
+    |> elem(1)
     # |> List.wrap()
     # |> Enum.map(fn seg ->
     #   Enum.map(seg.compiled_recipes, &{seg.id, &1})
@@ -93,7 +93,7 @@ defmodule LilyGraphChangeTest do
     # |> Enum.at(0)
     # |> Enum.at(0)
     # |> elem(1)
-    # |> IO.inspect()
+    |> IO.inspect()
   end
 
   test "blank history" do

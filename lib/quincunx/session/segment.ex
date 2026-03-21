@@ -53,7 +53,7 @@ defmodule Quincunx.Session.Segment do
   end
 
   @spec compile_to_recipes([t()] | t()) ::
-          {:ok, RecipeBundle.t() | [RecipeBundle.t()]} | {:error, term()}
+          {:ok, [RecipeBundle.t()]} | {:error, term()}
   def compile_to_recipes(%__MODULE__{} = segment), do: compile_to_recipes([segment])
 
   def compile_to_recipes(segments) when is_list(segments) do
@@ -69,25 +69,38 @@ defmodule Quincunx.Session.Segment do
       }
     end)
     |> Enum.group_by(& &1.group_key)
-    # %{{graph, cluster}, [%{segment: seg, interventions: interventions}]}
-    |> Enum.reduce_while({:ok, []}, fn {{graph, cluster}, items}, {:ok, acc} ->
-      case Compiler.compile_graph(graph, cluster) do
-        {:ok, static_recipes} ->
-          compiled_group =
-            Enum.map(items, fn item ->
-              bound_recipes =
-                static_recipes
-                |> List.wrap()
-                |> Compiler.bind_interventions(item.interventions)
-
-              %{item.segment | compiled_recipes: bound_recipes}
-            end)
-
-          {:cont, {:ok, acc ++ compiled_group}}
-
-        {:error, reason} ->
-          {:halt, {:error, reason}}
+    |> Enum.reduce_while({:ok, []}, fn {group_key, items}, {:ok, acc} ->
+      case merge_segments_per_graph(group_key, items) do
+        {:ok, compiled_group} -> {:cont, {:ok, acc ++ compiled_group}}
+        err -> {:halt, err}
       end
     end)
+  end
+
+  defp merge_segments_per_graph({graph, cluster}, segments_and_interventions) do
+    case Compiler.compile_graph(graph, cluster) do
+      {:ok, static_recipes} ->
+        compiled_group =
+          Enum.map(
+            segments_and_interventions,
+            fn %{
+                 segment: seg,
+                 interventions: interventions
+               } ->
+              %{
+                seg
+                | compiled_recipes:
+                    static_recipes
+                    |> List.wrap()
+                    |> Compiler.bind_interventions(interventions)
+              }
+            end
+          )
+
+        {:ok, compiled_group}
+
+      {:error, _reason} = err ->
+        err
+    end
   end
 end
