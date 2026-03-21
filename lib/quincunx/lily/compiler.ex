@@ -4,7 +4,7 @@ defmodule Quincunx.Lily.Compiler do
   Translates the effective DAG into a sequence of Orchid.Recipe.
   """
   alias Quincunx.Lily.{Graph, History, RecipeBundle}
-  alias Quincunx.Lily.Graph.{Node, Portkey, Cluster}
+  alias Quincunx.Lily.Graph.{Node, PortRef, Cluster}
 
   @spec compile_graph(Graph.t()) :: {:error, :cycle_detected} | {:ok, [RecipeBundle.t()]}
   def compile_graph(%Graph{} = graph, cluster_declara \\ %Cluster{}) do
@@ -58,12 +58,12 @@ defmodule Quincunx.Lily.Compiler do
     step_inputs =
       Enum.map(node.inputs, fn port_name ->
         case Enum.find(in_edges, &(&1.to_port == port_name)) do
-          nil -> Portkey.to_orchid_key({:port, node.id, port_name})
-          edge -> Portkey.to_orchid_key({:port, edge.from_node, edge.from_port})
+          nil -> PortRef.to_orchid_key({:port, node.id, port_name})
+          edge -> PortRef.to_orchid_key({:port, edge.from_node, edge.from_port})
         end
       end)
 
-    step_outputs = Enum.map(node.outputs, fn p -> Portkey.to_orchid_key({:port, node.id, p}) end)
+    step_outputs = Enum.map(node.outputs, fn p -> PortRef.to_orchid_key({:port, node.id, p}) end)
 
     build_orchid_step(node.impl, step_inputs, step_outputs, node.opts)
   end
@@ -76,12 +76,12 @@ defmodule Quincunx.Lily.Compiler do
     external_in_edges =
       graph.edges
       |> Enum.filter(&(&1.to_node in cluster_nodes_set and &1.from_node not in cluster_nodes_set))
-      |> Enum.map(&Portkey.to_orchid_key({:port, &1.from_node, &1.from_port}))
+      |> Enum.map(&PortRef.to_orchid_key({:port, &1.from_node, &1.from_port}))
 
     external_out_edges =
       graph.edges
       |> Enum.filter(&(&1.from_node in cluster_nodes_set and &1.to_node not in cluster_nodes_set))
-      |> Enum.map(&Portkey.to_orchid_key({:port, &1.from_node, &1.from_port}))
+      |> Enum.map(&PortRef.to_orchid_key({:port, &1.from_node, &1.from_port}))
 
     ## Dangling Edges
 
@@ -89,39 +89,46 @@ defmodule Quincunx.Lily.Compiler do
     edges_by_from_node = Enum.group_by(graph.edges, & &1.from_node)
 
     dangling_inputs =
-      Enum.flat_map(node_ids_in_cluster, fn node_id ->
-        node = graph.nodes[node_id]
+      Enum.flat_map(
+        node_ids_in_cluster,
+        &get_dangling_port(&1, graph, :inputs, edges_by_to_node)
+      )
 
-        in_edges = Map.get(edges_by_to_node, node_id, [])
+    dangling_outputs =
+      Enum.flat_map(
+        node_ids_in_cluster,
+        &get_dangling_port(&1, graph, :outputs, edges_by_from_node)
+      )
 
-        node.inputs
-        |> Enum.reject(fn port -> Enum.any?(in_edges, &(&1.to_port == port)) end)
-        |> Enum.map(fn port -> Portkey.to_orchid_key({:port, node.id, port}) end)
-      end)
+    ## Final Results
 
     requires = Enum.uniq(external_in_edges ++ dangling_inputs)
-
-    # when REAL Outputs may
-    dangling_outputs =
-      Enum.flat_map(node_ids_in_cluster, fn node_id ->
-        node = graph.nodes[node_id]
-
-        out_edges = Map.get(edges_by_from_node, node_id, [])
-
-        node.outputs
-        |> Enum.reject(fn port -> Enum.any?(out_edges, &(&1.to_port == port)) end)
-        |> Enum.map(fn port -> Portkey.to_orchid_key({:port, node.id, port}) end)
-      end)
 
     exports = Enum.uniq(external_out_edges ++ dangling_outputs)
 
     {requires, exports}
   end
 
+  defp get_dangling_port(current_node_id, graph, field, edges_attached_to_node) do
+    node = graph.nodes[current_node_id]
+
+    edges = Map.get(edges_attached_to_node, current_node_id, [])
+
+    case field do
+      :outputs ->
+        node.outputs
+        |> Enum.reject(fn port -> Enum.any?(edges, &(&1.to_port == port)) end)
+        |> Enum.map(fn port -> PortRef.to_orchid_key({:port, node.id, port}) end)
+
+      :inputs ->
+        node.inputs
+        |> Enum.reject(fn port -> Enum.any?(edges, &(&1.from_port == port)) end)
+        |> Enum.map(fn port -> PortRef.to_orchid_key({:port, node.id, port}) end)
+    end
+  end
+
   defp filter_port_data(data_map, node_ids) do
-    data_map
-    |> Enum.filter(fn {{:port, target_node, _port}, _data} -> target_node in node_ids end)
-    |> Enum.into(%{})
+    Map.filter(data_map, fn {{:port, target_node, _port}, _data} -> target_node in node_ids end)
   end
 
   def build_orchid_step(impl, inputs, outputs, opts) do

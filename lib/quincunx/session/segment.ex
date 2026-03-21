@@ -12,7 +12,7 @@ defmodule Quincunx.Session.Segment do
   @type t :: %__MODULE__{
           id: id(),
           graph_with_cluster: {Graph.t(), Cluster.t()},
-          compiled_recipes: nil | [RecipeBundle.t()],
+          recipe_bundles: nil | [RecipeBundle.t()],
           history: History.t(),
           snapshots: %{optional(atom()) => any()},
           extra: map()
@@ -21,7 +21,7 @@ defmodule Quincunx.Session.Segment do
   defstruct [
     :id,
     graph_with_cluster: {%Graph{}, %Cluster{}},
-    compiled_recipes: nil,
+    recipe_bundles: nil,
     history: %History{},
     snapshots: %{},
     extra: %{}
@@ -89,7 +89,7 @@ defmodule Quincunx.Session.Segment do
                } ->
               %{
                 seg
-                | compiled_recipes:
+                | recipe_bundles:
                     static_recipes
                     |> List.wrap()
                     |> Compiler.bind_interventions(interventions)

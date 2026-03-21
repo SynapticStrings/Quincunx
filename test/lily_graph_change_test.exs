@@ -32,7 +32,12 @@ defmodule LilyGraphChangeTest do
       %Node{id: :_1, impl: fn [i], o -> dummy_step1.(i, o) end, inputs: [:in], outputs: [:out1]},
       %Node{id: :_2, impl: fn [i], o -> dummy_step2.(i, o) end, inputs: [:in], outputs: [:out2]},
       %Node{id: :_3, impl: dummy_step3, inputs: [:op1, :op2], outputs: [:out3]},
-      %Node{id: :_4, impl: fn [i], o -> dummy_step4.(i, o) end, inputs: [:in], outputs: [:o1, :o2]}
+      %Node{
+        id: :_4,
+        impl: fn [i], o -> dummy_step4.(i, o) end,
+        inputs: [:in],
+        outputs: [:o1, :o2]
+      }
     ]
 
     Enum.reduce(init_nodes, Graph.new(), &Graph.add_node(&2, &1))

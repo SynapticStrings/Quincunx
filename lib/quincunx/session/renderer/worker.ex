@@ -3,7 +3,7 @@ defmodule Quincunx.Session.Renderer.Worker do
   Translates and executes a single Recipe in isolation.
   Designed to be run as an asynchronous Task.
   """
-  alias Quincunx.Lily.Graph.Portkey
+  alias Quincunx.Lily.Graph.PortRef
   alias Quincunx.Session.{Storage, Segment}
   alias Quincunx.Lily.RecipeBundle
   alias Quincunx.Session.Renderer.Blackboard
@@ -58,17 +58,32 @@ defmodule Quincunx.Session.Renderer.Worker do
   end
 
   defp resolve_dependencies(seg_id, %RecipeBundle{} = bundle, %Blackboard{} = blackboard) do
-    Enum.map(bundle.requires, fn port_key ->
-      with :not_exist_in_blackboard <-
-             Map.get(blackboard.memory, {seg_id, port_key}, :not_exist_in_blackboard),
-           %{} = inputs_map <- RecipeBundle.get_interventions(bundle, "inputs"),
-           {_key, %Orchid.Param{} = raw_param} <-
-             Enum.find(inputs_map, fn {raw_k, _v} -> Portkey.to_orchid_key(raw_k) == port_key end) do
-        %{raw_param | name: port_key}
-      else
-        %Orchid.Param{} = param -> param
-        false -> Orchid.Param.new(port_key, :void, nil)
+    inputs_map = RecipeBundle.get_interventions(bundle, "inputs")
+
+    Enum.map(bundle.requires, fn port_ref ->
+      cond do
+        # 1. Check Blackboard Memory first
+        Map.has_key?(blackboard.memory, {seg_id, port_ref}) ->
+          Map.get(blackboard.memory, {seg_id, port_ref})
+
+        # 2. Check Interventions
+        param = find_intervention_param(inputs_map, port_ref) ->
+          %{param | name: port_ref}
+
+        # 3. Fallback
+        true ->
+          Orchid.Param.new(port_ref, :void, nil)
       end
     end)
+  end
+
+  defp find_intervention_param(inputs_map, target_port_ref) when is_map(inputs_map) do
+    Enum.find_value(inputs_map, fn {raw_k, _v} = param ->
+      if PortRef.to_orchid_key(raw_k) == target_port_ref, do: param, else: false
+    end)
+    |> case do
+      {_key, %Orchid.Param{} = raw_param} -> raw_param
+      _ -> nil
+    end
   end
 end

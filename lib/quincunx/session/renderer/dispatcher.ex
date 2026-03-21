@@ -10,7 +10,7 @@ defmodule Quincunx.Session.Renderer.Dispatcher do
   def dispatch(%Planner.Plan{} = plan, %Blackboard{} = initial_board, opts \\ []) do
     storage_ctx = Keyword.get(opts, :storage)
     concurrency = Keyword.get(opts, :concurrency, System.schedulers_online())
-    timeout     = Keyword.get(opts, :timeout, 30_000)
+    timeout = Keyword.get(opts, :timeout, 30_000)
 
     Enum.reduce_while(plan.stages, {:ok, initial_board}, fn stage, {:ok, current_board} ->
       case run_stage(stage, current_board, storage_ctx, concurrency, timeout) do

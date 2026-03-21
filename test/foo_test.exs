@@ -64,12 +64,12 @@ defmodule Quincunx.SegmentBatchTest do
     res_seg2 = Enum.find(results, &(&1.id == :seg_2))
     res_seg3 = Enum.find(results, &(&1.id == :seg_3))
 
-    assert length(res_seg1.compiled_recipes) == 2
+    assert length(res_seg1.recipe_bundles) == 2
 
-    gpu_recipe_1 = Enum.find(res_seg1.compiled_recipes, &(&1.recipe.name == :gpu_cluster))
+    gpu_recipe_1 = Enum.find(res_seg1.recipe_bundles, &(&1.recipe.name == :gpu_cluster))
     assert RecipeBundle.get_intervention(gpu_recipe_1, "overrides", {:port, :node_b, :mid}) == 100
 
-    gpu_recipe_2 = Enum.find(res_seg2.compiled_recipes, &(&1.recipe.name == :gpu_cluster))
+    gpu_recipe_2 = Enum.find(res_seg2.recipe_bundles, &(&1.recipe.name == :gpu_cluster))
 
     assert RecipeBundle.get_intervention(gpu_recipe_2, "overrides", {:port, :node_b, :mid}) ==
              200
@@ -77,8 +77,8 @@ defmodule Quincunx.SegmentBatchTest do
     assert RecipeBundle.get_interventions(gpu_recipe_1, "overrides") !=
              RecipeBundle.get_interventions(gpu_recipe_2, "overrides")
 
-    assert length(res_seg3.compiled_recipes) == 1
-    cpu_recipe_3 = hd(res_seg3.compiled_recipes)
+    assert length(res_seg3.recipe_bundles) == 1
+    cpu_recipe_3 = hd(res_seg3.recipe_bundles)
 
     assert cpu_recipe_3.recipe.name == :cpu_cluster
 

@@ -53,7 +53,7 @@ defmodule Quincunx.Lily.Graph do
     end
   end
 
-  defmodule Portkey do
+  defmodule PortRef do
     @type t :: {:port, node :: Node.id(), port :: atom()}
 
     @spec to_orchid_key(t()) :: atom()
@@ -62,6 +62,8 @@ defmodule Quincunx.Lily.Graph do
     end
   end
 
+  # TODO: Add adjacency lists in future
+  # in/out edge => %{Node.id() => [Edge.t()]}
   @type t :: %__MODULE__{
           nodes: %{Node.id() => Node.t()},
           edges: MapSet.t(Edge.t()) | MapSet.t()
@@ -125,12 +127,7 @@ defmodule Quincunx.Lily.Graph do
 
   @spec remove_edge(t(), Edge.t()) :: t()
   def remove_edge(%__MODULE__{edges: edges} = graph, edge) do
-    %{
-      graph
-      | edges:
-          edges
-          |> Enum.reject(&(&1 == edge))
-          |> MapSet.new()
+    %{graph| edges: MapSet.delete(edges, edge)
     }
   end
 
@@ -150,9 +147,10 @@ defmodule Quincunx.Lily.Graph do
   def topological_sort(%__MODULE__{} = graph) do
     init_in_degrees = Map.keys(graph.nodes) |> Map.new(fn id -> {id, 0} end)
 
-    in_degrees = Enum.reduce(graph.edges, init_in_degrees, fn edge, acc ->
-      Map.update!(acc, edge.to_node, &(&1 + 1))
-    end)
+    in_degrees =
+      Enum.reduce(graph.edges, init_in_degrees, fn edge, acc ->
+        Map.update!(acc, edge.to_node, &(&1 + 1))
+      end)
 
     adj_list = Enum.group_by(graph.edges, & &1.from_node, & &1.to_node)
 

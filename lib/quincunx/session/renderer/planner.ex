@@ -43,14 +43,13 @@ defmodule Quincunx.Session.Renderer.Planner do
   @spec align_stages([Segment.t()]) :: [Stage.t()]
   defp align_stages(compiled_segments) do
     compiled_segments
-    |> Enum.map(fn %Segment{id: seg_id, compiled_recipes: recipes} ->
-      Enum.map(recipes, fn bundle -> {seg_id, bundle} end)
+    |> Enum.flat_map(fn %Segment{id: seg_id, recipe_bundles: recipes} ->
+      recipes
+      |> Enum.with_index()
+      |> Enum.map(fn {bundle, idx} -> {idx, {seg_id, bundle}} end)
     end)
-    |> Enum.zip()
-    |> Enum.map(&Tuple.to_list/1)
-    |> Enum.with_index()
-    |> Enum.map(fn {tasks, index} ->
-      %Stage{index: index, tasks: tasks}
-    end)
+    |> Enum.group_by(fn {idx, _task} -> idx end, fn {_idx, task} -> task end)
+    |> Enum.sort_by(fn {idx, _tasks} -> idx end)
+    |> Enum.map(fn {index, tasks} -> %Stage{index: index, tasks: tasks} end)
   end
 end
