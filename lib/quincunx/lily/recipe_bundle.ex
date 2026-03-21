@@ -4,7 +4,7 @@ defmodule Quincunx.Lily.RecipeBundle do
   alias Quincunx.Lily.Graph.{Node, Portkey}
 
   @type intervention :: %{} | %{Portkey.t() => any()}
-  @type intervention_name :: atom()
+  @type intervention_name :: binary()
   @type interventions(key) :: %{key => intervention()}
 
   @type t :: %__MODULE__{
@@ -34,7 +34,10 @@ defmodule Quincunx.Lily.RecipeBundle do
   def put_interventions(%__MODULE__{interventions: interventions} = bundle, key, intervention),
     do: %{bundle | interventions: Map.put(interventions, key, intervention)}
 
-  @spec put_intervention(t(), atom(), Portkey.t(), any()) ::t()
+  @spec put_intervention(t(), intervention_name(), Portkey.t(), any()) :: t()
   def put_intervention(%__MODULE__{} = bundle, key, port, value),
-    do: put_interventions(bundle, key, put_in(bundle.interventions, [key, port], value))
+    do:
+      update_in(bundle.interventions, fn interventions ->
+        Map.update(interventions, key, %{port => value}, &Map.put(&1, port, value))
+      end)
 end

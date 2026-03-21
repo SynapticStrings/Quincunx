@@ -27,16 +27,12 @@ defmodule Quincunx.Lily.Compiler do
   end
 
   @spec bind_interventions([RecipeBundle.t()], History.inputs_bundle()) :: [RecipeBundle.t()]
-  def bind_interventions(
-        static_recipes,
-        inputs_bundles
-      ) do
+  def bind_interventions(static_recipes, inputs_bundles) do
     Enum.map(static_recipes, fn %{node_ids: node_ids} = static_bundle ->
-      Enum.reduce(
-        Enum.map(inputs_bundles, fn {k, v} -> {k, filter_port_data(v, node_ids)} end),
-        static_bundle,
-        fn {k, v}, acc -> RecipeBundle.put_interventions(acc, k, v) end
-      )
+      Enum.reduce(inputs_bundles, static_bundle, fn {key, data}, bundle_acc ->
+        filtered_data = filter_port_data(data, node_ids)
+        RecipeBundle.put_interventions(bundle_acc, key, filtered_data)
+      end)
     end)
   end
 
@@ -75,15 +71,28 @@ defmodule Quincunx.Lily.Compiler do
   defp calculate_boundaries(node_ids_in_cluster, graph) do
     cluster_nodes_set = MapSet.new(node_ids_in_cluster)
 
+    ## External Edges
+
     external_in_edges =
       graph.edges
       |> Enum.filter(&(&1.to_node in cluster_nodes_set and &1.from_node not in cluster_nodes_set))
       |> Enum.map(&Portkey.to_orchid_key({:port, &1.from_node, &1.from_port}))
 
+    external_out_edges =
+      graph.edges
+      |> Enum.filter(&(&1.from_node in cluster_nodes_set and &1.to_node not in cluster_nodes_set))
+      |> Enum.map(&Portkey.to_orchid_key({:port, &1.from_node, &1.from_port}))
+
+    ## Dangling Edges
+
+    edges_by_to_node = Enum.group_by(graph.edges, & &1.to_node)
+    edges_by_from_node = Enum.group_by(graph.edges, & &1.from_node)
+
     dangling_inputs =
       Enum.flat_map(node_ids_in_cluster, fn node_id ->
         node = graph.nodes[node_id]
-        in_edges = Graph.get_in_edges(graph, node_id)
+
+        in_edges = Map.get(edges_by_to_node, node_id, [])
 
         node.inputs
         |> Enum.reject(fn port -> Enum.any?(in_edges, &(&1.to_port == port)) end)
@@ -92,16 +101,12 @@ defmodule Quincunx.Lily.Compiler do
 
     requires = Enum.uniq(external_in_edges ++ dangling_inputs)
 
-    external_out_edges =
-      graph.edges
-      |> Enum.filter(&(&1.from_node in cluster_nodes_set and &1.to_node not in cluster_nodes_set))
-      |> Enum.map(&Portkey.to_orchid_key({:port, &1.from_node, &1.from_port}))
-
     # when REAL Outputs may
     dangling_outputs =
       Enum.flat_map(node_ids_in_cluster, fn node_id ->
         node = graph.nodes[node_id]
-        out_edges = Graph.get_out_edges(graph, node_id)
+
+        out_edges = Map.get(edges_by_from_node, node_id, [])
 
         node.outputs
         |> Enum.reject(fn port -> Enum.any?(out_edges, &(&1.to_port == port)) end)

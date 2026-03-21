@@ -98,10 +98,8 @@ defmodule LilyCompilerTest do
 
       # 模拟 History 得到的 init_data (包含 inputs, overrides 等)
       init_data = %{
-        inputs: %{{:port, :split, :val} => 42},
-        overrides: %{{:port, :inc, :res} => 100},
-        offsets: %{},
-        masks: %{}
+        "inputs" => %{{:port, :split, :val} => 42},
+        "overrides" => %{{:port, :inc, :res} => 100}
       }
 
       cluster_declara = %Cluster{
@@ -132,9 +130,9 @@ defmodule LilyCompilerTest do
       gpu_bundle = Enum.find(final_bundles, &(&1.recipe.name == :gpu_cluster))
 
       # CPU 集群包含了 :split 的 input 和 :inc 的 override
-      assert RecipeBundle.get_intervention(cpu_bundle, :inputs, {:port, :split, :val}) == 42
+      assert RecipeBundle.get_intervention(cpu_bundle, "inputs", {:port, :split, :val}) == 42
 
-      assert RecipeBundle.get_intervention(cpu_bundle, :overrides, {:port, :inc, :res}) == 100
+      assert RecipeBundle.get_intervention(cpu_bundle, "overrides", {:port, :inc, :res}) == 100
 
       # GPU 集群没有任何干预数据
       assert map_size(RecipeBundle.get_interventions(gpu_bundle, :overrides)) == 0

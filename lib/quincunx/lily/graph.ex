@@ -63,7 +63,7 @@ defmodule Quincunx.Lily.Graph do
   end
 
   @type t :: %__MODULE__{
-          nodes: %{Node.id() => Node.t()} | %{},
+          nodes: %{Node.id() => Node.t()},
           edges: MapSet.t(Edge.t()) | MapSet.t()
         }
 
@@ -130,7 +130,7 @@ defmodule Quincunx.Lily.Graph do
       | edges:
           edges
           |> Enum.reject(&(&1 == edge))
-          |> Enum.into(%MapSet{})
+          |> MapSet.new()
     }
   end
 
@@ -148,44 +148,44 @@ defmodule Quincunx.Lily.Graph do
 
   @spec topological_sort(t()) :: {:ok, [Node.id()]} | {:error, :cycle_detected}
   def topological_sort(%__MODULE__{} = graph) do
-    init_in_degrees = Map.keys(graph.nodes) |> Map.new(fn id -> {id, 0} end) |> Enum.into(%{})
+    init_in_degrees = Map.keys(graph.nodes) |> Map.new(fn id -> {id, 0} end)
 
-    in_degrees =
-      Enum.reduce(graph.edges, init_in_degrees, fn edge, acc ->
-        Map.update!(acc, edge.to_node, &(&1 + 1))
-      end)
+    in_degrees = Enum.reduce(graph.edges, init_in_degrees, fn edge, acc ->
+      Map.update!(acc, edge.to_node, &(&1 + 1))
+    end)
+
+    adj_list = Enum.group_by(graph.edges, & &1.from_node, & &1.to_node)
 
     zero_in_degree_nodes =
       in_degrees
       |> Enum.filter(fn {_id, degree} -> degree == 0 end)
       |> Enum.map(fn {id, _degree} -> id end)
 
-    do_topo_sort(zero_in_degree_nodes, in_degrees, graph, [])
+    do_topo_sort(zero_in_degree_nodes, in_degrees, adj_list, map_size(graph.nodes), [])
   end
 
-  # Kahn algo
-  defp do_topo_sort([], _in_degrees, graph, sorted_acc) do
-    if length(sorted_acc) == map_size(graph.nodes) do
+  defp do_topo_sort([], _in_degrees, _adj_list, total_nodes, sorted_acc) do
+    if length(sorted_acc) == total_nodes do
       {:ok, Enum.reverse(sorted_acc)}
     else
       {:error, :cycle_detected}
     end
   end
 
-  defp do_topo_sort([node_id | rest_zero_nodes], in_degrees, graph, sorted_acc) do
+  defp do_topo_sort([node_id | rest_zero_nodes], in_degrees, adj_list, total, sorted_acc) do
+    neighbors = Map.get(adj_list, node_id, [])
+
     {new_in_degrees, new_zero_nodes} =
-      graph.edges
-      |> Enum.filter(&(&1.from_node == node_id))
-      |> Enum.reduce({in_degrees, rest_zero_nodes}, fn edge, {deg_acc, zero_acc} ->
-        new_deg = deg_acc[edge.to_node] - 1
-        deg_acc = Map.put(deg_acc, edge.to_node, new_deg)
+      Enum.reduce(neighbors, {in_degrees, rest_zero_nodes}, fn to_node, {deg_acc, zero_acc} ->
+        new_deg = deg_acc[to_node] - 1
+        deg_acc = Map.put(deg_acc, to_node, new_deg)
 
         case new_deg do
-          0 -> {deg_acc, [edge.to_node | zero_acc]}
+          0 -> {deg_acc, [to_node | zero_acc]}
           _ -> {deg_acc, zero_acc}
         end
       end)
 
-    do_topo_sort(new_zero_nodes, new_in_degrees, graph, [node_id | sorted_acc])
+    do_topo_sort(new_zero_nodes, new_in_degrees, adj_list, total, [node_id | sorted_acc])
   end
 end
