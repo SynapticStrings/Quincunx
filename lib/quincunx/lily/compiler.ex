@@ -26,13 +26,16 @@ defmodule Quincunx.Lily.Compiler do
     end
   end
 
-  @spec bind_interventions([RecipeBundle.t()], History.inputs_bundle()) :: [RecipeBundle.t()]
-  def bind_interventions(static_recipes, inputs_bundles) do
+  @spec bind_interventions([RecipeBundle.t()], History.interventions_map()) :: [RecipeBundle.t()]
+  def bind_interventions(static_recipes, interventions_map) do
     Enum.map(static_recipes, fn %{node_ids: node_ids} = static_bundle ->
-      Enum.reduce(inputs_bundles, static_bundle, fn {key, data}, bundle_acc ->
-        filtered_data = filter_port_data(data, node_ids)
-        RecipeBundle.put_interventions(bundle_acc, key, filtered_data)
-      end)
+      # 一次性过滤属于当前集群节点的介入数据
+      filtered_interventions =
+        Map.filter(interventions_map, fn {{:port, target_node, _}, _port_data} ->
+          target_node in node_ids
+        end)
+
+      %{static_bundle | interventions: filtered_interventions}
     end)
   end
 
@@ -125,10 +128,6 @@ defmodule Quincunx.Lily.Compiler do
         |> Enum.reject(fn port -> Enum.any?(edges, &(&1.from_port == port)) end)
         |> Enum.map(fn port -> PortRef.to_orchid_key({:port, node.id, port}) end)
     end
-  end
-
-  defp filter_port_data(data_map, node_ids) do
-    Map.filter(data_map, fn {{:port, target_node, _port}, _data} -> target_node in node_ids end)
   end
 
   def build_orchid_step(impl, inputs, outputs, opts) do

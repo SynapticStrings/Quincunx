@@ -50,9 +50,11 @@ defmodule Quincunx.Session.Renderer.Dispatcher do
   defp merge_results(%Blackboard{} = board, seg_id, outputs) do
     new_memory_entries =
       outputs
-      |> Enum.map(fn {port_name, param} ->
-        {{seg_id, port_name}, Orchid.Param.get_payload(param)}
+      |> Enum.map(fn
+        %Orchid.Param{} = param -> {{seg_id, param.name}, Orchid.Param.get_payload(param)}
+        {port_name, param} -> {{seg_id, port_name}, Orchid.Param.get_payload(param)}
       end)
+      |> Enum.reject(fn {_key, value} -> is_nil(value) end)
       |> Enum.into(%{})
 
     Blackboard.put(board, new_memory_entries)

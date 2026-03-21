@@ -66,10 +66,10 @@ defmodule LilyGraphChangeTest do
            inputs: [:in],
            outputs: [:out]
          }},
-        {:set_input, {:port, :_1, :in}, Orchid.Param.new(:in1, :string, "In1")},
-        {:set_input, {:port, :_2, :in}, Orchid.Param.new(:in2, :string, "In1")},
-        {:remove_input, {:port, :_2, :in}},
-        {:set_input, {:port, :_2, :in}, Orchid.Param.new(:in2, :string, "In2")}
+        {:set_intervention, {:port, :_1, :in}, :input, Orchid.Param.new(:in1, :string, "In1")},
+        {:set_intervention, {:port, :_2, :in}, :input, Orchid.Param.new(:in2, :string, "In1")},
+        {:remove_intervention, {:port, :_2, :in}, :input},
+        {:set_intervention, {:port, :_2, :in}, :input, Orchid.Param.new(:in2, :string, "In2")}
       ]
 
     history =
@@ -82,16 +82,16 @@ defmodule LilyGraphChangeTest do
     assert [_, _] = Graph.get_in_edges(graph, :_3)
     assert [_] = Graph.get_in_edges(graph, :_4)
 
-    # {:ok, _blackboard} = Enum.reduce(
-    #     records,
-    #     Quincunx.Session.Segment.new(:test, graph),
-    #     &Quincunx.Session.Segment.apply_operation(&2, &1)
-    #   )
-    #   |> List.wrap()
-    #   |> Quincunx.Session.Renderer.Planner.build()
-    #   |> elem(1)
-    #   |> Quincunx.Session.Renderer.Dispatcher.dispatch(Quincunx.Session.Renderer.Blackboard.new(:test))
-    #   |> IO.inspect()
+    {:ok, _blackboard} = Enum.reduce(
+        records,
+        Quincunx.Session.Segment.new(:test, graph),
+        &Quincunx.Session.Segment.apply_operation(&2, &1)
+      )
+      |> List.wrap()
+      |> Quincunx.Session.Renderer.Planner.build()
+      |> elem(1)
+      |> Quincunx.Session.Renderer.Dispatcher.dispatch(Quincunx.Session.Renderer.Blackboard.new(:test))
+      |> IO.inspect()
   end
 
   test "blank history" do

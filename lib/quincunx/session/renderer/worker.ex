@@ -58,32 +58,39 @@ defmodule Quincunx.Session.Renderer.Worker do
   end
 
   defp resolve_dependencies(seg_id, %RecipeBundle{} = bundle, %Blackboard{} = blackboard) do
-    inputs_map = RecipeBundle.get_interventions(bundle, "inputs")
-
-    Enum.map(bundle.requires, fn port_ref ->
+    Enum.map(bundle.requires, fn orchid_key ->
       cond do
-        # 1. Check Blackboard Memory first
-        Map.has_key?(blackboard.memory, {seg_id, port_ref}) ->
-          Map.get(blackboard.memory, {seg_id, port_ref})
+        Map.has_key?(blackboard.memory, {seg_id, orchid_key}) ->
+          Map.fetch!(blackboard.memory, {seg_id, orchid_key})
 
-        # 2. Check Interventions
-        param = find_intervention_param(inputs_map, port_ref) ->
-          %{param | name: port_ref}
+        param = find_input_intervention(bundle.interventions, orchid_key) ->
+          %{param | name: orchid_key}
 
-        # 3. Fallback
+        # Dangling inputs, use void
         true ->
-          Orchid.Param.new(port_ref, :void, nil)
+          Orchid.Param.new(orchid_key, :void, nil)
       end
     end)
   end
 
-  defp find_intervention_param(inputs_map, target_port_ref) when is_map(inputs_map) do
-    Enum.find_value(inputs_map, fn {raw_k, _v} = param ->
-      if PortRef.to_orchid_key(raw_k) == target_port_ref, do: param, else: false
+  defp find_input_intervention(interventions, target_orchid_key) do
+    # interventions's format:
+    # %{{:port, id, name} => %{input: data, override: data}
+    Enum.find_value(interventions, fn {port_ref, port_data} ->
+      if PortRef.to_orchid_key(port_ref) == target_orchid_key do
+        case Map.get(port_data, :input) do
+          %Orchid.Param{} = param ->
+            param
+
+          raw_value when not is_nil(raw_value) ->
+            Orchid.Param.new(target_orchid_key, :any, raw_value)
+
+          _ ->
+            nil
+        end
+      else
+        false
+      end
     end)
-    |> case do
-      {_key, %Orchid.Param{} = raw_param} -> raw_param
-      _ -> nil
-    end
   end
 end

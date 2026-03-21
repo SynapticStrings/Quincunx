@@ -39,7 +39,7 @@ defmodule Quincunx.SegmentBatchTest do
 
     hist1 =
       History.new()
-      |> History.push({:override, {:port, :node_b, :mid}, 100})
+      |> History.push({:set_intervention, {:port, :node_b, :mid}, :override, 100})
 
     seg1 = Segment.new(:seg_1, graph_v1, cluster_v1)
 
@@ -47,14 +47,14 @@ defmodule Quincunx.SegmentBatchTest do
 
     hist2 =
       History.new()
-      |> History.push({:override, {:port, :node_b, :mid}, 200})
+      |> History.push({:set_intervention, {:port, :node_b, :mid}, :override, 200})
 
     seg2 = Segment.new(:seg_2, graph_v1, cluster_v1)
     seg2 = %{seg2 | history: hist2}
 
     seg3 =
       Segment.new(:seg_3, build_graph_v2(), %Cluster{node_colors: %{node_d: :cpu_cluster}})
-      |> Segment.apply_operation({:mask, {:port, :node_d, :in}, 80})
+      |> Segment.apply_operation({:set_intervention, {:port, :node_d, :in}, :mask, 80})
 
     assert {:ok, results} = Segment.compile_to_recipes([seg1, seg2, seg3])
 
@@ -67,26 +67,22 @@ defmodule Quincunx.SegmentBatchTest do
     assert length(res_seg1.recipe_bundles) == 2
 
     gpu_recipe_1 = Enum.find(res_seg1.recipe_bundles, &(&1.recipe.name == :gpu_cluster))
-    assert RecipeBundle.get_intervention(gpu_recipe_1, "overrides", {:port, :node_b, :mid}) == 100
+    assert RecipeBundle.get_intervention(gpu_recipe_1, {:port, :node_b, :mid}, :override) == 100
 
     gpu_recipe_2 = Enum.find(res_seg2.recipe_bundles, &(&1.recipe.name == :gpu_cluster))
 
-    assert RecipeBundle.get_intervention(gpu_recipe_2, "overrides", {:port, :node_b, :mid}) ==
-             200
-
-    assert RecipeBundle.get_interventions(gpu_recipe_1, "overrides") !=
-             RecipeBundle.get_interventions(gpu_recipe_2, "overrides")
+    assert assert RecipeBundle.get_intervention(gpu_recipe_2, {:port, :node_b, :mid}, :override) == 200
 
     assert length(res_seg3.recipe_bundles) == 1
     cpu_recipe_3 = hd(res_seg3.recipe_bundles)
 
     assert cpu_recipe_3.recipe.name == :cpu_cluster
 
-    assert RecipeBundle.get_intervention(cpu_recipe_3, "masks", {:port, :node_d, :in}) ==
+    assert RecipeBundle.get_intervention(cpu_recipe_3, {:port, :node_d, :in}, :mask) ==
              80
 
-    assert RecipeBundle.put_intervention(cpu_recipe_3, "masks", {:port, :node_d, :in}, 0)
-           |> RecipeBundle.get_intervention("masks", {:port, :node_d, :in}) ==
+    assert RecipeBundle.put_intervention(cpu_recipe_3, {:port, :node_d, :in}, :mask, 0)
+           |> RecipeBundle.get_intervention({:port, :node_d, :in}, :mask) ==
              0
   end
 

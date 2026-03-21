@@ -2,6 +2,8 @@ defmodule Quincunx.Lily.History do
   defmodule Operation do
     alias Quincunx.Lily.Graph.{Node, Edge, PortRef}
 
+    @type intervention_type :: :input | :override | :offset | :mask | atom()
+
     @type topology_mutation ::
             {:add_node, Node.t()}
             | {:update_node, Node.id(),
@@ -15,24 +17,20 @@ defmodule Quincunx.Lily.History do
             | {:remove_input, PortRef.t()}
 
     @type data_interventions ::
-            {op :: atom(), PortRef.t(), data :: any()}
-            | {:remove_interventions, PortRef.t()}
+            {:set_intervention, PortRef.t(), intervention_type(), data :: any()}
+            | {:remove_intervention, PortRef.t(), intervention_type()}
+            | {:clear_interventions, PortRef.t()}
 
     @type t :: topology_mutation() | data_interventions() | input_declar()
   end
 
   alias Quincunx.Lily.Graph
 
-  @type inputs_bundle :: %{
-          # :inputs => %{Graph.PortRef.t() => any()},
-          # :overrides => %{Graph.PortRef.t() => any()},
-          # :offsets => %{Graph.PortRef.t() => any()},
-          # :masks => %{Graph.PortRef.t() => any()},
-          # optional(any()) => any()
-          binary() => %{Graph.PortRef.t() => any()}
+  @type interventions_map :: %{
+          Quincunx.Lily.Graph.PortRef.t() => %{Operation.intervention_type() => any()}
         }
 
-  @type effective_state :: {Graph.t(), inputs_bundle()}
+  @type effective_state :: {Graph.t(), interventions_map()}
 
   @type t :: %__MODULE__{
           # 越新的操作越靠前 (Head)
@@ -71,12 +69,12 @@ defmodule Quincunx.Lily.History do
   """
   @spec resolve(Graph.t(), t()) :: effective_state()
   def resolve(%Graph{} = base_graph, %__MODULE__{undo_stack: undo_stack}) do
-    initial_state = %{graph: base_graph}
+    initial_state = %{graph: base_graph, interventions: %{}}
 
     undo_stack
     |> Enum.reverse()
     |> Enum.reduce(initial_state, &apply_operation/2)
-    |> Map.pop(:graph)
+    |> (fn state -> {state.graph, state.interventions} end).()
   end
 
   defp apply_operation({:add_node, node}, state) do
@@ -99,43 +97,38 @@ defmodule Quincunx.Lily.History do
     %{state | graph: Graph.remove_edge(state.graph, edge)}
   end
 
-  defp apply_operation({:set_input, port_ref, data}, state) do
-    apply_operation({:input, port_ref, data}, state)
+  defp apply_operation({:set_intervention, port_ref, type, value}, state) do
+    new_interventions =
+      Map.update(
+        state.interventions,
+        port_ref,
+        %{type => value},
+        fn port_data -> Map.put(port_data, type, value) end
+      )
+
+    %{state | interventions: new_interventions}
   end
 
-  defp apply_operation({intervention_name, {:port, _, _} = port_ref, value}, state)
-       when is_atom(intervention_name) do
-    apply_operation({"#{Atom.to_string(intervention_name)}s", port_ref, value}, state)
+  defp apply_operation({:remove_intervention, port_ref, type}, state) do
+    new_interventions =
+      case Map.fetch(state.interventions, port_ref) do
+        {:ok, port_data} ->
+          clean_port_data = Map.delete(port_data, type)
+
+          if map_size(clean_port_data) == 0 do
+            Map.delete(state.interventions, port_ref)
+          else
+            Map.put(state.interventions, port_ref, clean_port_data)
+          end
+
+        :error ->
+          state.interventions
+      end
+
+    %{state | interventions: new_interventions}
   end
 
-  defp apply_operation({intervention_name, {:port, _, _} = port_ref, value}, state)
-       when is_binary(intervention_name) do
-    new_intervention =
-      state
-      |> Map.get(intervention_name, %{})
-      |> Map.put(port_ref, value)
-
-    Map.put(state, intervention_name, new_intervention)
-  end
-
-  defp apply_operation({:remove_input, port_ref}, state) do
-    remove_intervention("inputs", port_ref, state)
-  end
-
-  defp apply_operation({:remove_interventions, {:port, _, _} = port_ref}, state) do
-    state
-    |> Map.keys()
-    |> List.delete(:graph)
-    |> Enum.reduce(state, &remove_intervention(&1, port_ref, &2))
-  end
-
-  defp remove_intervention(intervation_name, {:port, _, _} = port_ref, state) do
-    case Map.get(state, intervation_name) do
-      %{} ->
-        %{state | intervation_name => Map.get(state, intervation_name) |> Map.delete(port_ref)}
-
-      nil ->
-        state
-    end
+  defp apply_operation({:clear_interventions, port_ref}, state) do
+    %{state | interventions: Map.delete(state.interventions, port_ref)}
   end
 end

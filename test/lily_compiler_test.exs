@@ -97,8 +97,8 @@ defmodule LilyCompilerTest do
       graph = build_test_graph()
 
       init_data = %{
-        "inputs" => %{{:port, :split, :val} => 42},
-        "overrides" => %{{:port, :inc, :res} => 100}
+        {:port, :split, :val} => %{input: 42},
+        {:port, :inc, :res} => %{override: 100}
       }
 
       cluster_declara = %Cluster{
@@ -118,18 +118,16 @@ defmodule LilyCompilerTest do
       cpu_recipe = Enum.find(static_recipes, &(&1.recipe.name == :cpu_cluster))
       assert :split_val in cpu_recipe.requires
 
-      assert map_size(RecipeBundle.get_interventions(cpu_recipe, :overrides)) == 0
-
       final_bundles = Compiler.bind_interventions(static_recipes, init_data)
 
       cpu_bundle = Enum.find(final_bundles, &(&1.recipe.name == :cpu_cluster))
       gpu_bundle = Enum.find(final_bundles, &(&1.recipe.name == :gpu_cluster))
 
-      assert RecipeBundle.get_intervention(cpu_bundle, "inputs", {:port, :split, :val}) == 42
+      assert RecipeBundle.get_intervention(cpu_bundle, {:port, :split, :val}, :input) == 42
 
-      assert RecipeBundle.get_intervention(cpu_bundle, "overrides", {:port, :inc, :res}) == 100
+      assert RecipeBundle.get_intervention(cpu_bundle, {:port, :inc, :res}, :override) == 100
 
-      assert map_size(RecipeBundle.get_interventions(gpu_bundle, :overrides)) == 0
+      assert map_size(gpu_bundle.interventions) == 0
     end
   end
 end

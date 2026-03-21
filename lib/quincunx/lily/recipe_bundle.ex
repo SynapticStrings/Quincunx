@@ -1,12 +1,11 @@
 defmodule Quincunx.Lily.RecipeBundle do
-  @moduledoc "It is a container to store some data that orchid or task runner required."
+  @moduledoc "Container for static AST and dynamic parameters."
 
   alias Quincunx.Lily.Graph.{Node, PortRef}
   alias Quincunx.Session.Segment
 
-  @type intervention :: %{} | %{PortRef.t() => any()}
-  @type intervention_name :: binary()
-  @type interventions(key) :: %{key => intervention()}
+  @type intervention_type :: atom()
+  @type port_interventions :: %{intervention_type() => any()}
 
   @type t :: %__MODULE__{
           id: Segment.id(),
@@ -14,7 +13,7 @@ defmodule Quincunx.Lily.RecipeBundle do
           requires: [PortRef.t()],
           exports: [PortRef.t()],
           node_ids: [Node.id()],
-          interventions: interventions(intervention_name())
+          interventions: %{PortRef.t() => port_interventions()}
         }
   defstruct [
     :id,
@@ -25,22 +24,18 @@ defmodule Quincunx.Lily.RecipeBundle do
     interventions: %{}
   ]
 
-  @spec get_interventions(t(), intervention_name()) :: map()
-  def get_interventions(%__MODULE__{interventions: interventions}, key),
-    do: Map.get(interventions, key, %{})
+  @spec get_intervention(t(), PortRef.t(), intervention_type()) :: any()
+  def get_intervention(%__MODULE__{} = bundle, port_ref, type) do
+    get_in(bundle.interventions, [port_ref, type])
+  end
 
-  @spec get_intervention(t(), intervention_name(), PortRef.t()) :: any()
-  def get_intervention(%__MODULE__{} = bundle, key, port),
-    do: get_in(bundle.interventions, [key, port])
-
-  @spec put_interventions(t(), intervention_name(), intervention()) :: t()
-  def put_interventions(%__MODULE__{interventions: interventions} = bundle, key, intervention),
-    do: %{bundle | interventions: Map.put(interventions, key, intervention)}
-
-  @spec put_intervention(t(), intervention_name(), PortRef.t(), any()) :: t()
-  def put_intervention(%__MODULE__{} = bundle, key, port, value),
-    do:
-      update_in(bundle.interventions, fn interventions ->
-        Map.update(interventions, key, %{port => value}, &Map.put(&1, port, value))
+  @spec put_intervention(t(), PortRef.t(), intervention_type(), any()) :: t()
+  def put_intervention(%__MODULE__{} = bundle, port_ref, type, value) do
+    new_interventions =
+      Map.update(bundle.interventions, port_ref, %{type => value}, fn port_data ->
+        Map.put(port_data, type, value)
       end)
+
+    %{bundle | interventions: new_interventions}
+  end
 end
