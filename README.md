@@ -65,7 +65,37 @@ Quincunx manages heterogeneous routing via **Cluster (Color Painting)**:
 *   **On-Demand Painting**: During graph compilation, edges and nodes are "painted" with specific cluster tags (e.g., `:cpu_cluster`, `:gpu_cluster`) based on user declarations or upstream dependencies.
 *   **Topology Tearing**: Dependent nodes belonging to different clusters are automatically split into separate `Orchid.Recipe`s. This allows the host application to dispatch heavy tensors to dedicated Python/NIF workers while keeping lightweight data transformations inside the local Erlang scheduler.
 
+### The Execution Triad: Planner, Dispatcher, Worker
+
+To ensure barrier-synchronized execution across hundreds of segments without blocking the host system, Quincunx splits the rendering pipeline into three distinct phases:
+
+1. **Planner (Pure Functional)**: Receives a list of dirty `Segment`s, resolves their `History` mutations into flat topologies, compiles them into static `Orchid.Recipe`s, and transposes them into a deterministic execution plan grouped by `Stage`s.
+2. **Dispatcher (OTP Coordinator)**: An asynchronous state machine that executes the plan stage by stage. It acts as an execution barrier—ensuring all parallel tasks in Stage $N$ are completed and their outputs merged into the `Blackboard` before yielding to Stage $N+1$.
+3. **Worker (Stateless Runner)**: Wraps the actual `Orchid.run/3` invocation. It resolves dynamic dependencies from the Blackboard, applies `OrchidStratum` cache bypassing, and reports the physical computation payload back to the Dispatcher.
+
 ## Quick Start
+
+### Non-OTP Version
+
+```elixir
+alias Quincunx.Session.Segment
+alias Quincunx.Session.Renderer.{Planner, Dispatcher, Blackboard}
+
+# 1. User applies an operation (e.g., drawing a curve over an AI model's output)
+dirty_segment = Segment.apply_operation(segment, {:set_input, port_key, curve_data})
+
+# 2. The Planner compiles and aligns the dirty segments into an Execution Plan
+{:ok, plan} = Planner.build([dirty_segment])
+
+# 3. Mount the session's Blackboard and Storage
+blackboard = Blackboard.new(:my_vocal_session)
+
+# 4. Dispatch the parallel rendering jobs (Stage by Stage)
+{:ok, new_blackboard} = Dispatcher.dispatch(plan, blackboard)
+# All caching, topology tearing, and data routing are handled implicitly!
+```
+
+### OTP Version
 
 *(Coming soon...)*
 
