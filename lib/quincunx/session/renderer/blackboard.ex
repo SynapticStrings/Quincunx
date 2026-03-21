@@ -1,16 +1,16 @@
 defmodule Quincunx.Session.Renderer.Blackboard do
-  alias Quincunx.Session.Segment
+  alias Quincunx.Session.{Segment, Storage}
   alias Quincunx.Lily.Graph.Portkey
 
   @type t :: %__MODULE__{
           segment_id: Segment.id(),
           memory: %{Portkey.t() => Orchid.Param.t() | any()},
-          cache_ref: any()
+          cache_ref: nil | Storage.t()
         }
 
   defstruct [:segment_id, memory: %{}, cache_ref: nil]
 
-  @spec new(any()) :: t()
+  @spec new(Segment.id()) :: t()
   def new(segment_id), do: %__MODULE__{segment_id: segment_id, memory: %{}}
 
   @spec put(t(), %{Portkey.t() => Orchid.Param.t()}) :: t()

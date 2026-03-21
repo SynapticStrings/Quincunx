@@ -2,12 +2,14 @@ defmodule Quincunx.Lily.RecipeBundle do
   @moduledoc "It is a container to store some data that orchid or task runner required."
 
   alias Quincunx.Lily.Graph.{Node, Portkey}
+  alias Quincunx.Session.Segment
 
   @type intervention :: %{} | %{Portkey.t() => any()}
   @type intervention_name :: binary()
   @type interventions(key) :: %{key => intervention()}
 
   @type t :: %__MODULE__{
+          id: Segment.id(),
           recipe: Orchid.Recipe.t(),
           requires: [Portkey.t()],
           exports: [Portkey.t()],
@@ -15,6 +17,7 @@ defmodule Quincunx.Lily.RecipeBundle do
           interventions: interventions(intervention_name())
         }
   defstruct [
+    :id,
     :recipe,
     :requires,
     :exports,

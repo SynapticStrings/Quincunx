@@ -53,7 +53,7 @@ defmodule Quincunx.Session.Segment do
   end
 
   @spec compile_to_recipes([t()] | t()) ::
-          {:ok, [RecipeBundle.t()]} | {:error, term()}
+          {:ok, [t()]} | {:error, term()}
   def compile_to_recipes(%__MODULE__{} = segment), do: compile_to_recipes([segment])
 
   def compile_to_recipes(segments) when is_list(segments) do
