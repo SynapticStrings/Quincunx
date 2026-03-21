@@ -85,9 +85,8 @@ defmodule Quincunx.SegmentBatchTest do
     assert RecipeBundle.get_intervention(cpu_recipe_3, "masks", {:port, :node_d, :in}) ==
              80
 
-    RecipeBundle.put_intervention(cpu_recipe_3, "masks", {:port, :node_d, :in}, 0)
-
-    assert RecipeBundle.get_intervention(cpu_recipe_3, "masks", {:port, :node_d, :in}) ==
+    assert RecipeBundle.put_intervention(cpu_recipe_3, "masks", {:port, :node_d, :in}, 0)
+           |> RecipeBundle.get_intervention("masks", {:port, :node_d, :in}) ==
              0
   end
 

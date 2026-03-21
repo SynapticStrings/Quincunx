@@ -77,11 +77,22 @@ defmodule LilyGraphChangeTest do
     assert [_, _] = Graph.get_in_edges(graph, :_3)
     assert [_] = Graph.get_in_edges(graph, :_4)
 
-    # Quincunx.Lily.Compiler.compile_graph(graph)
-    # {:ok, ses} = Enum.reduce(records, Quincunx.Session.Segment.new(:test, graph), &Quincunx.Session.Segment.apply_operation(&2, &1))
+    # Enum.reduce(
+    #   records,
+    #   Quincunx.Session.Segment.new(:test, graph),
+    #   &Quincunx.Session.Segment.apply_operation(&2, &1)
+    # )
     # |> Quincunx.Session.Segment.compile_to_recipes()
-
-    # Quincunx.Session.Renderer.RenderTask.run(ses)
+    # |> elem(1)
+    # |> List.wrap()
+    # |> Enum.map(fn seg ->
+    #   Enum.map(seg.compiled_recipes, &{seg.id, &1})
+    # end)
+    # |> Enum.zip()
+    # |> Enum.map(&Tuple.to_list/1)
+    # |> Enum.at(0)
+    # |> Enum.at(0)
+    # |> elem(1)
     # |> IO.inspect()
   end
 

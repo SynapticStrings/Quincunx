@@ -96,7 +96,6 @@ defmodule LilyCompilerTest do
     test "两阶段编译 - 拓扑切割与数据缝合" do
       graph = build_test_graph()
 
-      # 模拟 History 得到的 init_data (包含 inputs, overrides 等)
       init_data = %{
         "inputs" => %{{:port, :split, :val} => 42},
         "overrides" => %{{:port, :inc, :res} => 100}
@@ -112,29 +111,24 @@ defmodule LilyCompilerTest do
         }
       }
 
-      # 第一阶段：纯拓扑编译
       {:ok, static_recipes} = Compiler.compile_graph(graph, cluster_declara)
 
       assert length(static_recipes) == 2
 
       cpu_recipe = Enum.find(static_recipes, &(&1.recipe.name == :cpu_cluster))
       assert :split_val in cpu_recipe.requires
-      # 确保没有包含侧载数据
+
       assert map_size(RecipeBundle.get_interventions(cpu_recipe, :overrides)) == 0
 
-      # 第二阶段：数据绑定 (Downstream Enumerable Mapping)
       final_bundles = Compiler.bind_interventions(static_recipes, init_data)
 
-      # 验证数据是否被正确分发到对应的 bundle
       cpu_bundle = Enum.find(final_bundles, &(&1.recipe.name == :cpu_cluster))
       gpu_bundle = Enum.find(final_bundles, &(&1.recipe.name == :gpu_cluster))
 
-      # CPU 集群包含了 :split 的 input 和 :inc 的 override
       assert RecipeBundle.get_intervention(cpu_bundle, "inputs", {:port, :split, :val}) == 42
 
       assert RecipeBundle.get_intervention(cpu_bundle, "overrides", {:port, :inc, :res}) == 100
 
-      # GPU 集群没有任何干预数据
       assert map_size(RecipeBundle.get_interventions(gpu_bundle, :overrides)) == 0
     end
   end

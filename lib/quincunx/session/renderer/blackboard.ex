@@ -4,10 +4,11 @@ defmodule Quincunx.Session.Renderer.Blackboard do
 
   @type t :: %__MODULE__{
           segment_id: Segment.id(),
-          memory: %{Portkey.t() => Orchid.Param.t() | any()}
+          memory: %{Portkey.t() => Orchid.Param.t() | any()},
+          cache_ref: any()
         }
 
-  defstruct [:segment_id, memory: %{}]
+  defstruct [:segment_id, memory: %{}, cache_ref: nil]
 
   @spec new(any()) :: t()
   def new(segment_id), do: %__MODULE__{segment_id: segment_id, memory: %{}}
