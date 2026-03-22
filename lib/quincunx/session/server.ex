@@ -57,7 +57,7 @@ defmodule Quincunx.Session.Server do
   end
 
   @impl true
-  def handle_call(:dispatch, _from, %State{} = state) do
+  def handle_call({:dispatch, dispatch_opts}, _from, %State{} = state) do
     final_bundles =
       Enum.map(state.segments, fn {seg_id, segment} ->
         compile_segment(seg_id, segment, state.static_bundles_cache)
@@ -72,7 +72,7 @@ defmodule Quincunx.Session.Server do
     |> Planner.build()
     |> case do
       {:ok, plans} ->
-        new_black_board = Dispatcher.dispatch(plans, state.blackboard)
+        new_black_board = Dispatcher.dispatch(plans, state.blackboard, dispatch_opts)
 
         {:reply, :ok, %{state | blackboard: new_black_board}}
 

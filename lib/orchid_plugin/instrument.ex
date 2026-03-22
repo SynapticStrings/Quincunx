@@ -4,10 +4,23 @@ defmodule OrchidPlugin.Instrument do
   @behaviour Orchid.Plugin
 
   @impl true
-  def scope_name, do: :instrument
+  def scope_name, do: :instruments
 
   @impl true
-  def apply_plugin(recipe_opts, %{instrument: _context}) do
-    recipe_opts
+  def apply_plugin({orchid_recipe, opts}, %{instruments: symbionts_mapper}) do
+    {orchid_recipe, add_options(opts, symbionts_mapper)}
+  end
+
+  defp add_options(old_orchid_opts, symbiont_mapper) do
+    {old_hooks_stack, old_orchid_opts_without_hooks} =
+      Keyword.pop(old_orchid_opts, :global_hooks_stack, [])
+
+    {old_baggage, clean_orchid_opts} = Keyword.pop(old_orchid_opts_without_hooks, :baggage, %{})
+
+    clean_orchid_opts ++
+      [
+        baggage: %{old_baggage | symbiont_mapper: symbiont_mapper},
+        global_hooks_stack: old_hooks_stack ++ [Orchid.Symbiont.Hooks.Injector]
+      ]
   end
 end
