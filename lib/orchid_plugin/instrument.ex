@@ -3,7 +3,11 @@ defmodule OrchidPlugin.Instrument do
 
   @behaviour Orchid.Plugin
 
-  def apply_plugin(recipe_opts, _plugin_context) do
+  @impl true
+  def scope_name, do: :instrument
+
+  @impl true
+  def apply_plugin(recipe_opts, %{instrument: _context}) do
     recipe_opts
   end
 end

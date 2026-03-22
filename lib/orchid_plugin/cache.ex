@@ -1,10 +1,17 @@
 defmodule OrchidPlugin.Cache do
+  @moduledoc "Integrate OrchidStratum."
   alias Quincunx.Session.Storage
 
   @behaviour Orchid.Plugin
 
   @impl true
-  def apply_plugin({recipe, base_run_opts}, storage_ctx) do
+  def scope_name, do: :storage_ctx
+
+  @impl true
+  @spec apply_plugin(Orchid.Plugin.orchid_tuple(), %{
+          :storage_ctx => nil | Quincunx.Session.Storage.t()
+        }) :: Orchid.Plugin.orchid_tuple()
+  def apply_plugin({recipe, base_run_opts}, %{storage_ctx: storage_ctx}) do
     with %Storage{meta_conf: meta, blob_conf: blob} <- storage_ctx do
       OrchidStratum.apply_cache(recipe, meta, blob, base_run_opts)
     else

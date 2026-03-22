@@ -45,17 +45,19 @@ defmodule Quincunx.Renderer.Worker do
     end
   end
 
-  defp apply_recipe_and_opts(seg_id, bundle, orchid_custom_baggage, orchid_opts, %{
-         storage_ctx: storage_ctx
-       }) do
+  defp apply_recipe_and_opts(seg_id, bundle, orchid_custom_baggage, orchid_opts, features) do
     base_baggage =
       for {k, v} <- orchid_custom_baggage,
           into: %{segments_id: seg_id},
           do: {k, v}
 
     {recipe_to_run, final_run_opts} =
-        OrchidPlugin.Cache.apply_plugin({bundle.recipe, Keyword.merge([baggage: base_baggage], orchid_opts)}, storage_ctx)
-      # TODO: Add hook here
+      OrchidPlugin.Cache.apply_plugin(
+        {bundle.recipe, Keyword.merge([baggage: base_baggage], orchid_opts)},
+        features
+      )
+
+    # TODO: Add hook here
 
     {recipe_to_run, final_run_opts}
   end

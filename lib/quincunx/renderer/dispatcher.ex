@@ -8,11 +8,14 @@ defmodule Quincunx.Renderer.Dispatcher do
   Runs the execution plan synchronously, applying barrier locks between stages.
   """
   def dispatch(%Planner.Plan{} = plan, %Blackboard{} = initial_board, opts \\ []) do
-    storage_ctx = Keyword.get(opts, :storage)
     concurrency = Keyword.get(opts, :concurrency, System.schedulers_online())
     timeout = Keyword.get(opts, :timeout, :infinity)
 
     orchid_baggage = Keyword.get(opts, :orchid_baggage, [])
+
+    ## Features
+    storage_key = OrchidPlugin.Cache.scope_name()
+    storage_ctx = Keyword.get(opts, :storage)
 
     Enum.reduce_while(plan.stages, {:ok, initial_board}, fn stage, {:ok, current_board} ->
       case run_stage(
@@ -20,7 +23,7 @@ defmodule Quincunx.Renderer.Dispatcher do
              current_board,
              concurrency,
              timeout,
-             %{storage_ctx: storage_ctx},
+             %{storage_key => storage_ctx},
              orchid_baggage,
              []
            ) do
