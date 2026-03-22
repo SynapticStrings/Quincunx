@@ -4,7 +4,6 @@ defmodule Quincunx.Renderer.Worker do
   Designed to be run as an asynchronous Task.
   """
   alias Quincunx.Topology.Graph.PortRef
-  alias Quincunx.Session.Storage
   alias Quincunx.Editor.Segment
   alias Quincunx.Compiler.RecipeBundle
   alias Quincunx.Renderer.Blackboard
@@ -54,16 +53,9 @@ defmodule Quincunx.Renderer.Worker do
           into: %{segments_id: seg_id},
           do: {k, v}
 
-    base_run_opts = Keyword.merge([baggage: base_baggage], orchid_opts)
-
     {recipe_to_run, final_run_opts} =
-      case storage_ctx do
-        %Storage{meta_conf: meta, blob_conf: blob} ->
-          OrchidStratum.apply_cache(bundle.recipe, meta, blob, base_run_opts)
-
-        nil ->
-          {bundle.recipe, base_run_opts}
-      end
+        OrchidPlugin.Cache.apply_plugin({bundle.recipe, Keyword.merge([baggage: base_baggage], orchid_opts)}, storage_ctx)
+      # TODO: Add hook here
 
     {recipe_to_run, final_run_opts}
   end
