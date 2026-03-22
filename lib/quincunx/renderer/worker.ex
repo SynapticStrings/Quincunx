@@ -47,9 +47,8 @@ defmodule Quincunx.Renderer.Worker do
 
   defp apply_recipe_and_opts(seg_id, bundle, orchid_custom_baggage, orchid_opts, features) do
     base_baggage =
-      for {k, v} <- orchid_custom_baggage,
-          into: %{segments_id: seg_id},
-          do: {k, v}
+      Enum.into(orchid_custom_baggage, %{})
+      |> Map.put(:segments_id, seg_id)
 
     {recipe_to_run, final_run_opts} =
       OrchidPlugin.Cache.apply_plugin(
