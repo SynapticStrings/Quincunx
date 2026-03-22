@@ -4,34 +4,27 @@ defmodule Quincunx.Session.Server do
   """
   use GenServer
 
-  alias Quincunx.Editor.Segment
+  alias Quincunx.Editor.{Segment, History.Resolver, History.Operation}
   alias Quincunx.Session.Storage
-  alias Quincunx.Renderer.{Planner, Blackboard}
+  alias Quincunx.Renderer.{Blackboard, Planner, Dispatcher}
+  alias Quincunx.Compiler.{GraphBuilder, RecipeBundle}
 
   defmodule State do
     @type t :: %__MODULE__{
             session_id: term(),
             segments: %{Segment.id() => Segment.t()},
-            dirty: MapSet.t(Segment.id()),
+            static_bundles_cache: %{Segment.id() => [RecipeBundle.t()]},
             blackboard: Blackboard.t(),
-            storage: Storage.t() | nil,
-            last_plan: Planner.Plan.t() | nil,
-            subscribers: [pid()]
+            storage: Storage.t() | nil
           }
     defstruct [
       :session_id,
       :storage,
-      :last_plan,
       segments: %{},
-      dirty: MapSet.new(),
-      blackboard: nil,
-      subscribers: []
+      static_bundles_cache: %{},
+      blackboard: nil
     ]
   end
-
-  ## PUBLIC API ##
-
-  ## CALLBACKs
 
   @impl true
   def init(opts) do
@@ -46,7 +39,64 @@ defmodule Quincunx.Session.Server do
      }}
   end
 
-  # handle_call :add_segment
+  @impl true
+  def handle_cast({:apply_operation, seg_id, op}, %State{} = state) do
+    segment = Map.fetch!(state.segments, seg_id)
+    updated_segment = Segment.apply_operation(segment, op)
 
-  # handle_call :remove_segment
+    state = put_in(state.segments[seg_id], updated_segment)
+
+    state =
+      if Operation.topology?(op) do
+        %{state | static_bundles_cache: Map.delete(state.static_bundles_cache, seg_id)}
+      else
+        state
+      end
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_call(:dispatch, _from, %State{} = state) do
+    final_bundles =
+      Enum.map(state.segments, fn {seg_id, segment} ->
+        compile_segment(seg_id, segment, state.static_bundles_cache)
+      end)
+
+    new_cache = final_bundles |> Enum.map(fn {id, _, static} -> {id, static} end) |> Map.new()
+    state = %{state | static_bundles_cache: new_cache}
+
+    executable_pairs = final_bundles |> Enum.map(fn {id, bundles, _} -> {id, bundles} end)
+
+    executable_pairs
+    |> Planner.build()
+    |> case do
+      {:ok, plans} ->
+        new_black_board = Dispatcher.dispatch(plans, state.blackboard)
+
+        {:reply, :ok, %{state | blackboard: new_black_board}}
+
+      err ->
+        {:reply, {:error, err}, state}
+    end
+  end
+
+  defp compile_segment(seg_id, segment, cache) do
+    resolved = Resolver.resolve(segment.history, segment.graph)
+
+    static_recipes =
+      case Map.fetch(cache, seg_id) do
+        {:ok, cached_static} ->
+          cached_static
+
+        :error ->
+          {:ok, compiled} = GraphBuilder.compile_graph(resolved.graph, segment.cluster)
+
+          compiled
+      end
+
+    executable_bundles = RecipeBundle.bind_interventions(static_recipes, resolved.interventions)
+
+    {seg_id, executable_bundles, static_recipes}
+  end
 end

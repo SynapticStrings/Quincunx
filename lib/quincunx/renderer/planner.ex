@@ -29,15 +29,23 @@ defmodule Quincunx.Renderer.Planner do
     end
   end
 
-  @spec build([Segment.t()]) :: {:error, any()} | {:ok, Plan.t()}
-  def build(segments) do
+  @spec build([Segment.t()] | [{Segment.id(), [RecipeBundle.t()]}]) :: {:error, any()} | {:ok, Plan.t()}
+  def build(segments_or_compiled_pairs)
+
+  def build([%Segment{} | _] = segments) do
     with {:ok, compiled_pairs} <- Compiler.compile_to_recipes(segments) do
       stages = align_stages(compiled_pairs)
       {:ok, Plan.new(stages)}
     end
   end
 
-  # Input: [{seg_id_1, [bundle_A, bundle_B]}, {seg_id_2, [bundle_C]}]
+  def build(compiled_pairs) do
+    stages = align_stages(compiled_pairs)
+
+    {:ok, Plan.new(stages)}
+  end
+
+  # inputs => [{seg_id_1, [bundle_A, bundle_B]}, {seg_id_2, [bundle_C]}]
   defp align_stages(compiled_pairs) do
     compiled_pairs
     |> Enum.flat_map(fn {seg_id, bundles} ->
