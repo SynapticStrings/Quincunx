@@ -33,8 +33,7 @@ And Quincunx isn't:
 
 ---
 
-<details open>
-<summary><b>Architecture & Key Concepts (Click to expand)</b></summary>
+## Architecture & Key Concepts (Click to expand)
 
 ### Granularity Control of Incremental Generation
 
@@ -129,8 +128,8 @@ orchid_opts = [
     hooks: [Orchid.Hook.Override]
   ]},
   orchid_baggage: [
-    override: %{/* global override map */},
-    offset: %{/* global offset map */}
+    override: %{...}, # global override map
+    offset: %{...} # global offset map
   ]
 ]
 

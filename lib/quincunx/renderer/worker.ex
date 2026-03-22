@@ -54,10 +54,7 @@ defmodule Quincunx.Renderer.Worker do
           into: %{segments_id: seg_id},
           do: {k, v}
 
-    base_run_opts =
-      for {k, v} <- orchid_opts,
-          into: [baggage: base_baggage],
-          do: {k, v}
+    base_run_opts = Keyword.merge([baggage: base_baggage], orchid_opts)
 
     {recipe_to_run, final_run_opts} =
       case storage_ctx do
