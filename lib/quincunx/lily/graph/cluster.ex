@@ -1,8 +1,8 @@
 defmodule Quincunx.Lily.Graph.Cluster do
-  # 将依赖依照用户选择以及依赖关系分簇
-  # 以实现并行控制
-  # 人话：将部分很耗费资源的服务单独丢出去
-  # 将整个并行改成串行 + 并行
+  # Cluster dependencies based on user selections and dependency relationships
+  # at the front end to achieve parallel control
+  # i.e., isolate resource-intensive services and convert the entire parallel task
+  # into a serial + parallel process.
   alias Quincunx.Lily.Graph.{Node, Edge}
 
   @type cluster_name :: atom() | String.t() | [cluster_name()]
@@ -41,7 +41,7 @@ defmodule Quincunx.Lily.Graph.Cluster do
   defp get_upstream_colors(node_id, edges, color_map) do
     Enum.filter(edges, fn e -> e.to_node == node_id end)
     |> case do
-      [] -> []
+      [] -> [:default_cluster]
       _ = upper_edges -> Enum.map(upper_edges, fn e -> e.from_node end)
     end
     |> Enum.map(&Map.get(color_map, &1, :default_cluster))

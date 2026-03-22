@@ -1,4 +1,4 @@
-defmodule Quincunx.Session.Segment do
+defmodule Quincunx.Segment do
   @moduledoc """
   The smallest unit for incremental generation.
   It holds the static topology, user edit history, and cached runtime references.

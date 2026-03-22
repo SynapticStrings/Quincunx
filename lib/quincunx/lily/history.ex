@@ -33,9 +33,9 @@ defmodule Quincunx.Lily.History do
   @type effective_state :: {Graph.t(), interventions_map()}
 
   @type t :: %__MODULE__{
-          # 越新的操作越靠前 (Head)
+          # new as head
           undo_stack: [Operation.t()],
-          # 越靠近当前时间点的“未来”越靠前
+          # [redo_immed, ...]
           redo_stack: [Operation.t()]
         }
 
@@ -64,8 +64,9 @@ defmodule Quincunx.Lily.History do
   end
 
   @doc """
-  将所有的历史记录（过去）按时间顺序叠加到 base_graph 上。
-  输出 Compiler 和 Orchid 真正需要的有效状态。
+  Overlay all historical records onto the `base_graph` in chronological order.
+
+  Output the valid states that the Compiler and Orchid need.
   """
   @spec resolve(Graph.t(), t()) :: effective_state()
   def resolve(%Graph{} = base_graph, %__MODULE__{undo_stack: undo_stack}) do

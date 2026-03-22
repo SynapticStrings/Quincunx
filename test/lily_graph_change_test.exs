@@ -84,13 +84,13 @@ defmodule LilyGraphChangeTest do
 
     {:ok, _blackboard} = Enum.reduce(
         records,
-        Quincunx.Session.Segment.new(:test, graph),
-        &Quincunx.Session.Segment.apply_operation(&2, &1)
+        Quincunx.Segment.new(:test, graph),
+        &Quincunx.Segment.apply_operation(&2, &1)
       )
       |> List.wrap()
-      |> Quincunx.Session.Renderer.Planner.build()
+      |> Quincunx.Renderer.Planner.build()
       |> elem(1)
-      |> Quincunx.Session.Renderer.Dispatcher.dispatch(Quincunx.Session.Renderer.Blackboard.new(:test))
+      |> Quincunx.Renderer.Dispatcher.dispatch(Quincunx.Renderer.Blackboard.new(:test))
       |> IO.inspect()
   end
 

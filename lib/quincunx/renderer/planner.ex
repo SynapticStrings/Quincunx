@@ -1,8 +1,8 @@
-defmodule Quincunx.Session.Renderer.Planner do
+defmodule Quincunx.Renderer.Planner do
   @moduledoc """
-  Aligning `Quincunx.Session.Segment`s into pipeline batch.
+  Aligning `Quincunx.Segment`s into pipeline batch.
   """
-  alias Quincunx.Session.Segment
+  alias Quincunx.Segment
   alias Quincunx.Lily.RecipeBundle
 
   defmodule Stage do
@@ -28,8 +28,8 @@ defmodule Quincunx.Session.Renderer.Planner do
     end
   end
 
-  @spec build([Quincunx.Session.Segment.t()]) ::
-          {:error, any()} | {:ok, Quincunx.Session.Renderer.Planner.Plan.t()}
+  @spec build([Quincunx.Segment.t()]) ::
+          {:error, any()} | {:ok, Quincunx.Renderer.Planner.Plan.t()}
   def build(segments) do
     with {:ok, segments_with_recipes} <- Segment.compile_to_recipes(segments) do
       stages = align_stages(segments_with_recipes)

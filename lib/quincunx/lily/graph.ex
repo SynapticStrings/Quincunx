@@ -56,7 +56,7 @@ defmodule Quincunx.Lily.Graph do
   defmodule PortRef do
     @type t :: {:port, node :: Node.id(), port :: atom()}
 
-    @spec to_orchid_key(t()) :: atom()
+    @spec to_orchid_key(t()) :: Orchid.Step.io_key()
     def to_orchid_key({:port, node, port}) do
       :"#{node}_#{port}"
     end
@@ -131,14 +131,14 @@ defmodule Quincunx.Lily.Graph do
     }
   end
 
-  @doc "获取指向某节点的所有输入边"
-  @spec get_in_edges(t(), Node.t()) :: [Edge.t()]
+  @doc "Get all input edges pointing to a given node"
+  @spec get_in_edges(t(), Node.id()) :: [Edge.t()]
   def get_in_edges(%__MODULE__{} = graph, node_id) do
     Enum.filter(graph.edges, &(&1.to_node == node_id))
   end
 
-  @doc "获取从某节点发出的所有输出边"
-  @spec get_out_edges(t(), Node.t()) :: [Edge.t()]
+  @doc "Get all output edges emanating from a given node."
+  @spec get_out_edges(t(), Node.id()) :: [Edge.t()]
   def get_out_edges(%__MODULE__{} = graph, node_id) do
     Enum.filter(graph.edges, &(&1.from_node == node_id))
   end

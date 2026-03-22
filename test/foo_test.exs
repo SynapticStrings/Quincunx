@@ -1,7 +1,7 @@
 defmodule Quincunx.SegmentBatchTest do
   use ExUnit.Case
 
-  alias Quincunx.Session.Segment
+  alias Quincunx.Segment
   alias Quincunx.Lily.{Graph, History, RecipeBundle}
   alias Quincunx.Lily.Graph.{Node, Edge, Cluster}
 

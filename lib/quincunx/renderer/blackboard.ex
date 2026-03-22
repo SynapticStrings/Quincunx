@@ -1,5 +1,5 @@
-defmodule Quincunx.Session.Renderer.Blackboard do
-  alias Quincunx.Session.{Segment, Storage}
+defmodule Quincunx.Renderer.Blackboard do
+  alias Quincunx.{Segment, Storage}
   alias Quincunx.Lily.Graph.PortRef
 
   @type t :: %__MODULE__{

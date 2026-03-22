@@ -2,7 +2,7 @@ defmodule Quincunx.Lily.RecipeBundle do
   @moduledoc "Container for static AST and dynamic parameters."
 
   alias Quincunx.Lily.Graph.{Node, PortRef}
-  alias Quincunx.Session.Segment
+  alias Quincunx.Segment
 
   @type intervention_type :: atom()
   @type port_interventions :: %{intervention_type() => any()}
@@ -10,8 +10,8 @@ defmodule Quincunx.Lily.RecipeBundle do
   @type t :: %__MODULE__{
           id: Segment.id(),
           recipe: Orchid.Recipe.t(),
-          requires: [PortRef.t()],
-          exports: [PortRef.t()],
+          requires: [Orchid.Step.io_key()],
+          exports: [Orchid.Step.io_key()],
           node_ids: [Node.id()],
           interventions: %{PortRef.t() => port_interventions()}
         }
