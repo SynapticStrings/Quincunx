@@ -43,9 +43,7 @@ defmodule LilyGraphChangeTest do
     Enum.reduce(init_nodes, Graph.new(), &Graph.add_node(&2, &1))
   end
 
-  test "do, undo & redo" do
-    records =
-      [
+  def records do [
         {:add_edge, %Edge{from_node: :_1, to_node: :_3, from_port: :out1, to_port: :op1}},
         {:add_edge, %Edge{from_node: :_2, to_node: :_3, from_port: :out2, to_port: :op2}},
         {:add_edge, %Edge{from_node: :_3, to_node: :_4, from_port: :out3, to_port: :in}},
@@ -71,9 +69,11 @@ defmodule LilyGraphChangeTest do
         {:remove_intervention, {:port, :_2, :in}, :input},
         {:set_intervention, {:port, :_2, :in}, :input, Orchid.Param.new(:in2, :string, "In2")}
       ]
+    end
 
+  test "do, undo & redo" do
     history =
-      Enum.reduce(records, History.new(), &History.push(&2, &1))
+      Enum.reduce(records(), History.new(), &History.push(&2, &1))
       |> History.undo()
       |> History.redo()
 
@@ -82,16 +82,17 @@ defmodule LilyGraphChangeTest do
     assert [_, _] = Graph.get_in_edges(graph, :_3)
     assert [_] = Graph.get_in_edges(graph, :_4)
 
-    {:ok, _blackboard} = Enum.reduce(
-        records,
-        Quincunx.Segment.new(:test, graph),
-        &Quincunx.Segment.apply_operation(&2, &1)
-      )
-      |> List.wrap()
-      |> Quincunx.Renderer.Planner.build()
-      |> elem(1)
-      |> Quincunx.Renderer.Dispatcher.dispatch(Quincunx.Renderer.Blackboard.new(:test))
-      |> IO.inspect()
+    # {:ok, _blackboard} =
+    #   Enum.reduce(
+    #     records,
+    #     Quincunx.Segment.new(:test, graph),
+    #     &Quincunx.Segment.apply_operation(&2, &1)
+    #   )
+    #   |> List.wrap()
+    #   |> Quincunx.Renderer.Planner.build()
+    #   |> elem(1)
+    #   |> Quincunx.Renderer.Dispatcher.dispatch(Quincunx.Renderer.Blackboard.new(:test))
+    #   |> IO.inspect()
   end
 
   test "blank history" do
@@ -102,5 +103,27 @@ defmodule LilyGraphChangeTest do
 
     assert history.redo_stack == []
     assert history.undo_stack == []
+  end
+
+  test "full pipeline from base graph produces correct blackboard values" do
+    base_graph = init()
+
+    segment =
+      Enum.reduce(records(), Quincunx.Segment.new("testBinary", base_graph), &Quincunx.Segment.apply_operation(&2, &1))
+
+    assert {:ok, plan} = Quincunx.Renderer.Planner.build([segment])
+    assert {:ok, board} = Quincunx.Renderer.Dispatcher.dispatch(plan, Quincunx.Renderer.Blackboard.new(:test))
+
+    assert board.memory[{"testBinary", :_1_out1}] == "In1-> DummyStep1"
+    assert board.memory[{"testBinary", :_2_out2}] == "In2-> DummyStep2"
+
+    assert board.memory[{"testBinary", :_3_out3}] ==
+             "DummyStep3(In1-> DummyStep1, In2-> DummyStep2)"
+
+    assert board.memory[{"testBinary", :shadow1_out}] ==
+             "ShadowStep(DummyStep4(DummyStep3(In1-> DummyStep1, In2-> DummyStep2)_1))"
+
+    # shadow2 was removed — must not appear
+    refute Map.has_key?(board.memory, {"testBinary", :shadow2_out})
   end
 end

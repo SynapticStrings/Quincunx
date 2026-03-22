@@ -74,7 +74,6 @@ defmodule Quincunx.Renderer.Worker do
           Map.fetch!(blackboard.memory, {seg_id, orchid_key})
 
         port_data = Map.get(interventions_by_key, orchid_key) ->
-          IO.inspect orchid_key
           case Map.get(port_data, :input) do
             %Orchid.Param{} = param -> %{param | name: orchid_key}
             raw_value when not is_nil(raw_value) -> Orchid.Param.new(orchid_key, :any, raw_value)

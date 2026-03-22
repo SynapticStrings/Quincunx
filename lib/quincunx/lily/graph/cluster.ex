@@ -39,14 +39,17 @@ defmodule Quincunx.Lily.Graph.Cluster do
   end
 
   defp get_upstream_colors(node_id, edges, color_map) do
-    Enum.filter(edges, fn e -> e.to_node == node_id end)
-    |> case do
-      [] -> [:default_cluster]
-      _ = upper_edges -> Enum.map(upper_edges, fn e -> e.from_node end)
+    upstream =
+      edges
+      |> Enum.filter(fn e -> e.to_node == node_id end)
+      |> Enum.map(fn e -> Map.get(color_map, e.from_node, :default_cluster) end)
+      |> List.flatten()
+      |> Enum.uniq()
+
+    case upstream do
+      [] -> :default_cluster
+      [single] -> single
+      multiple -> multiple
     end
-    |> Enum.map(&Map.get(color_map, &1, :default_cluster))
-    # [[:foo, :bar], :bar] => [:foo, :bar]
-    |> List.flatten()
-    |> Enum.uniq()
   end
 end
