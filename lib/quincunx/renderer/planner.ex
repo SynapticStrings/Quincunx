@@ -2,6 +2,7 @@ defmodule Quincunx.Renderer.Planner do
   @moduledoc """
   Aligning `Quincunx.Segment`s into pipeline batch.
   """
+  alias Quincunx.Compiler
   alias Quincunx.Editor.Segment
   alias Quincunx.Compiler.RecipeBundle
 
@@ -28,25 +29,21 @@ defmodule Quincunx.Renderer.Planner do
     end
   end
 
-  @spec build([Segment.t()]) ::
-          {:error, any()} | {:ok, Quincunx.Renderer.Planner.Plan.t()}
+  @spec build([Segment.t()]) :: {:error, any()} | {:ok, Plan.t()}
   def build(segments) do
-    with {:ok, segments_with_recipes} <- Segment.compile_to_recipes(segments) do
-      stages = align_stages(segments_with_recipes)
-
+    with {:ok, compiled_pairs} <- Compiler.compile_to_recipes(segments) do
+      stages = align_stages(compiled_pairs)
       {:ok, Plan.new(stages)}
-    else
-      err -> err
     end
   end
 
-  @spec align_stages([Segment.t()]) :: [Stage.t()]
-  defp align_stages(compiled_segments) do
-    compiled_segments
-    |> Enum.flat_map(fn %Segment{id: seg_id, recipe_bundles: recipes} ->
-      recipes
+  # Input: [{seg_id_1, [bundle_A, bundle_B]}, {seg_id_2, [bundle_C]}]
+  defp align_stages(compiled_pairs) do
+    compiled_pairs
+    |> Enum.flat_map(fn {seg_id, bundles} ->
+      bundles
       |> Enum.with_index()
-      |> Enum.map(fn {bundle, idx} -> {idx, {seg_id, bundle}} end)
+      |> Enum.map(fn {bundle, stage_idx} -> {stage_idx, {seg_id, bundle}} end)
     end)
     |> Enum.group_by(fn {idx, _task} -> idx end, fn {_idx, task} -> task end)
     |> Enum.sort_by(fn {idx, _tasks} -> idx end)

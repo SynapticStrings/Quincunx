@@ -3,7 +3,7 @@ defmodule Quincunx.SegmentBatchTest do
 
   alias Quincunx.Editor.{Segment, History}
   alias Quincunx.Topology.{Graph, Cluster}
-  alias Quincunx.Compiler.RecipeBundle
+  alias Quincunx.{Compiler, Compiler.RecipeBundle}
   alias Quincunx.Topology.Graph.{Node, Edge}
 
   defp build_graph_v1 do
@@ -57,25 +57,26 @@ defmodule Quincunx.SegmentBatchTest do
       Segment.new(:seg_3, build_graph_v2(), %Cluster{node_colors: %{node_d: :cpu_cluster}})
       |> Segment.apply_operation({:set_intervention, {:port, :node_d, :in}, :mask, 80})
 
-    assert {:ok, results} = Segment.compile_to_recipes([seg1, seg2, seg3])
+    assert {:ok, results} = Compiler.compile_to_recipes([seg1, seg2, seg3])
 
     assert length(results) == 3
 
-    res_seg1 = Enum.find(results, &(&1.id == :seg_1))
-    res_seg2 = Enum.find(results, &(&1.id == :seg_2))
-    res_seg3 = Enum.find(results, &(&1.id == :seg_3))
+    {:seg_1, res_seg1} = Enum.find(results, fn {k, _} -> k == :seg_1 end)
+    {:seg_2, res_seg2} = Enum.find(results, fn {k, _} -> k == :seg_2 end)
+    {:seg_3, res_seg3} = Enum.find(results, fn {k, _} -> k == :seg_3 end)
 
-    assert length(res_seg1.recipe_bundles) == 2
+    assert length(res_seg1) == 2
 
-    gpu_recipe_1 = Enum.find(res_seg1.recipe_bundles, &(&1.recipe.name == :gpu_cluster))
+    gpu_recipe_1 = Enum.find(res_seg1, &(&1.recipe.name == :gpu_cluster))
     assert RecipeBundle.get_intervention(gpu_recipe_1, {:port, :node_b, :mid}, :override) == 100
 
-    gpu_recipe_2 = Enum.find(res_seg2.recipe_bundles, &(&1.recipe.name == :gpu_cluster))
+    gpu_recipe_2 = Enum.find(res_seg2, &(&1.recipe.name == :gpu_cluster))
 
-    assert assert RecipeBundle.get_intervention(gpu_recipe_2, {:port, :node_b, :mid}, :override) == 200
+    assert assert RecipeBundle.get_intervention(gpu_recipe_2, {:port, :node_b, :mid}, :override) ==
+                    200
 
-    assert length(res_seg3.recipe_bundles) == 1
-    cpu_recipe_3 = hd(res_seg3.recipe_bundles)
+    assert length(res_seg3) == 1
+    cpu_recipe_3 = hd(res_seg3)
 
     assert cpu_recipe_3.recipe.name == :cpu_cluster
 
@@ -96,6 +97,6 @@ defmodule Quincunx.SegmentBatchTest do
     seg_ok = Segment.new(:ok, build_graph_v1())
     seg_err = Segment.new(:err, graph_cycle)
 
-    assert {:error, :cycle_detected} = Segment.compile_to_recipes([seg_ok, seg_err])
+    assert {:error, :cycle_detected} = Compiler.compile_to_recipes([seg_ok, seg_err])
   end
 end

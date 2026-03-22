@@ -7,10 +7,26 @@ defmodule TopologyCompilerClustersTest do
 
   test "two-cluster topology produces correct boundaries" do
     # Node A (cpu) -> Node B (gpu) -> Node C (cpu, gpu)
-    graph = Graph.new()
-      |> Graph.add_node(%Node{id: :a, impl: fn [i], _ -> {:ok, i} end, inputs: [:in], outputs: [:out]})
-      |> Graph.add_node(%Node{id: :b, impl: fn [i], _ -> {:ok, i} end, inputs: [:in], outputs: [:out]})
-      |> Graph.add_node(%Node{id: :c, impl: fn [i], _ -> {:ok, i} end, inputs: [:in], outputs: [:out]})
+    graph =
+      Graph.new()
+      |> Graph.add_node(%Node{
+        id: :a,
+        impl: fn [i], _ -> {:ok, i} end,
+        inputs: [:in],
+        outputs: [:out]
+      })
+      |> Graph.add_node(%Node{
+        id: :b,
+        impl: fn [i], _ -> {:ok, i} end,
+        inputs: [:in],
+        outputs: [:out]
+      })
+      |> Graph.add_node(%Node{
+        id: :c,
+        impl: fn [i], _ -> {:ok, i} end,
+        inputs: [:in],
+        outputs: [:out]
+      })
       |> Graph.add_edge(Edge.new(:a, :out, :b, :in))
       |> Graph.add_edge(Edge.new(:b, :out, :c, :in))
 
@@ -21,9 +37,8 @@ defmodule TopologyCompilerClustersTest do
     # Must produce multiple bundles with correct requires/exports
     assert length(bundles) >= 2
 
-    gpu_bundle = Enum.find(bundles, & :gpu in List.wrap(&1.recipe.name))
+    gpu_bundle = Enum.find(bundles, &(:gpu in List.wrap(&1.recipe.name)))
     assert :a_out in gpu_bundle.requires
     assert :b_out in gpu_bundle.exports
   end
-
 end

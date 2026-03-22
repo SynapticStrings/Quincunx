@@ -41,33 +41,34 @@ defmodule TopologyGraphChangeTest do
     Enum.reduce(init_nodes, Graph.new(), &Graph.add_node(&2, &1))
   end
 
-  def records do [
-        {:add_edge, %Edge{from_node: :_1, to_node: :_3, from_port: :out1, to_port: :op1}},
-        {:add_edge, %Edge{from_node: :_2, to_node: :_3, from_port: :out2, to_port: :op2}},
-        {:add_edge, %Edge{from_node: :_3, to_node: :_4, from_port: :out3, to_port: :in}},
-        {:add_node,
-         %Node{id: :shadow1, impl: fn [i], _ -> {:ok, i} end, inputs: [:in], outputs: [:out]}},
-        {:add_node,
-         %Node{id: :shadow2, impl: fn [i], _ -> {:ok, i} end, inputs: [:in], outputs: [:out]}},
-        {:add_edge, %Edge{from_node: :_4, to_node: :shadow1, from_port: :o1, to_port: :in}},
-        {:add_edge, %Edge{from_node: :_4, to_node: :shadow2, from_port: :o2, to_port: :in}},
-        {:remove_node, :shadow2},
-        {:remove_edge, %Edge{from_node: :_4, to_node: :shadow2, from_port: :o2, to_port: :in}},
-        {:update_node, :shadow1,
-         %Node{
-           id: :shadow1,
-           impl: fn [%Orchid.Param{payload: p}], _ ->
-             {:ok, %Orchid.Param{payload: "ShadowStep(#{p})"}}
-           end,
-           inputs: [:in],
-           outputs: [:out]
-         }},
-        {:set_intervention, {:port, :_1, :in}, :input, Orchid.Param.new(:in1, :string, "In1")},
-        {:set_intervention, {:port, :_2, :in}, :input, Orchid.Param.new(:in2, :string, "In1")},
-        {:remove_intervention, {:port, :_2, :in}, :input},
-        {:set_intervention, {:port, :_2, :in}, :input, Orchid.Param.new(:in2, :string, "In2")}
-      ]
-    end
+  def records do
+    [
+      {:add_edge, %Edge{from_node: :_1, to_node: :_3, from_port: :out1, to_port: :op1}},
+      {:add_edge, %Edge{from_node: :_2, to_node: :_3, from_port: :out2, to_port: :op2}},
+      {:add_edge, %Edge{from_node: :_3, to_node: :_4, from_port: :out3, to_port: :in}},
+      {:add_node,
+       %Node{id: :shadow1, impl: fn [i], _ -> {:ok, i} end, inputs: [:in], outputs: [:out]}},
+      {:add_node,
+       %Node{id: :shadow2, impl: fn [i], _ -> {:ok, i} end, inputs: [:in], outputs: [:out]}},
+      {:add_edge, %Edge{from_node: :_4, to_node: :shadow1, from_port: :o1, to_port: :in}},
+      {:add_edge, %Edge{from_node: :_4, to_node: :shadow2, from_port: :o2, to_port: :in}},
+      {:remove_node, :shadow2},
+      {:remove_edge, %Edge{from_node: :_4, to_node: :shadow2, from_port: :o2, to_port: :in}},
+      {:update_node, :shadow1,
+       %Node{
+         id: :shadow1,
+         impl: fn [%Orchid.Param{payload: p}], _ ->
+           {:ok, %Orchid.Param{payload: "ShadowStep(#{p})"}}
+         end,
+         inputs: [:in],
+         outputs: [:out]
+       }},
+      {:set_intervention, {:port, :_1, :in}, :input, Orchid.Param.new(:in1, :string, "In1")},
+      {:set_intervention, {:port, :_2, :in}, :input, Orchid.Param.new(:in2, :string, "In1")},
+      {:remove_intervention, {:port, :_2, :in}, :input},
+      {:set_intervention, {:port, :_2, :in}, :input, Orchid.Param.new(:in2, :string, "In2")}
+    ]
+  end
 
   test "do, undo & redo" do
     history =
@@ -107,10 +108,16 @@ defmodule TopologyGraphChangeTest do
     base_graph = init()
 
     segment =
-      Enum.reduce(records(), Quincunx.Editor.Segment.new("testBinary", base_graph), &Quincunx.Editor.Segment.apply_operation(&2, &1))
+      Enum.reduce(
+        records(),
+        Quincunx.Editor.Segment.new("testBinary", base_graph),
+        &Quincunx.Editor.Segment.apply_operation(&2, &1)
+      )
 
     assert {:ok, plan} = Quincunx.Renderer.Planner.build([segment])
-    assert {:ok, board} = Quincunx.Renderer.Dispatcher.dispatch(plan, Quincunx.Renderer.Blackboard.new(:test))
+
+    assert {:ok, board} =
+             Quincunx.Renderer.Dispatcher.dispatch(plan, Quincunx.Renderer.Blackboard.new(:test))
 
     assert board.memory[{"testBinary", :_1_out1}] == "In1-> DummyStep1"
     assert board.memory[{"testBinary", :_2_out2}] == "In2-> DummyStep2"

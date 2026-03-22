@@ -127,8 +127,7 @@ defmodule Quincunx.Topology.Graph do
 
   @spec remove_edge(t(), Edge.t()) :: t()
   def remove_edge(%__MODULE__{edges: edges} = graph, edge) do
-    %{graph| edges: MapSet.delete(edges, edge)
-    }
+    %{graph | edges: MapSet.delete(edges, edge)}
   end
 
   @doc "Get all input edges pointing to a given node"
