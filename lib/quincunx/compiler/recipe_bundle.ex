@@ -2,13 +2,13 @@ defmodule Quincunx.Compiler.RecipeBundle do
   @moduledoc "Container for static AST and dynamic parameters."
 
   alias Quincunx.Topology.Graph
-  alias Quincunx.Editor.Segment
+  alias Quincunx.Editor
 
   @type intervention_type :: atom()
   @type port_interventions :: %{intervention_type() => any()}
 
   @type t :: %__MODULE__{
-          id: Segment.id(),
+          id: Editor.Segment.id(),
           recipe: Orchid.Recipe.t(),
           requires: [Orchid.Step.io_key()],
           exports: [Orchid.Step.io_key()],
@@ -37,5 +37,19 @@ defmodule Quincunx.Compiler.RecipeBundle do
       end)
 
     %{bundle | interventions: new_interventions}
+  end
+
+  @doc "Bind pure data interventions into given static recipe bundles."
+  @spec bind_interventions([t()], Editor.History.interventions_map()) :: [t()]
+  def bind_interventions(static_recipes, interventions_map) do
+    Enum.map(static_recipes, fn %{node_ids: node_ids} = static_bundle ->
+      # Filter all interventions that belong to the current cluster nodes
+      filtered_interventions =
+        Map.filter(interventions_map, fn {{:port, target_node, _}, _port_data} ->
+          target_node in node_ids
+        end)
+
+      %{static_bundle | interventions: filtered_interventions}
+    end)
   end
 end

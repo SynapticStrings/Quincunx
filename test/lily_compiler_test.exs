@@ -51,7 +51,7 @@ defmodule TopologyCompilerTest do
     test "compiling with single cluster and recognise hanging params" do
       graph = build_test_graph()
 
-      {:ok, recipes} = Compiler.compile_graph(graph)
+      {:ok, recipes} = Compiler.GraphBuilder.compile_graph(graph)
 
       assert length(recipes) == 1
       recipe = hd(recipes)
@@ -75,7 +75,7 @@ defmodule TopologyCompilerTest do
         }
       }
 
-      {:ok, recipes} = Compiler.compile_graph(graph, cluster_declara)
+      {:ok, recipes} = Compiler.GraphBuilder.compile_graph(graph, cluster_declara)
 
       assert length(recipes) == 2
 
@@ -111,14 +111,14 @@ defmodule TopologyCompilerTest do
         }
       }
 
-      {:ok, static_recipes} = Compiler.compile_graph(graph, cluster_declara)
+      {:ok, static_recipes} = Compiler.GraphBuilder.compile_graph(graph, cluster_declara)
 
       assert length(static_recipes) == 2
 
       cpu_recipe = Enum.find(static_recipes, &(&1.recipe.name == :cpu_cluster))
       assert :split_val in cpu_recipe.requires
 
-      final_bundles = Compiler.bind_interventions(static_recipes, init_data)
+      final_bundles = Compiler.RecipeBundle.bind_interventions(static_recipes, init_data)
 
       cpu_bundle = Enum.find(final_bundles, &(&1.recipe.name == :cpu_cluster))
       gpu_bundle = Enum.find(final_bundles, &(&1.recipe.name == :gpu_cluster))

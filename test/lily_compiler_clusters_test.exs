@@ -32,7 +32,7 @@ defmodule TopologyCompilerClustersTest do
 
     cluster = %Cluster{node_colors: %{a: :cpu, b: :gpu, c: :cpu2}}
 
-    {:ok, bundles} = Compiler.compile_graph(graph, cluster)
+    {:ok, bundles} = Compiler.GraphBuilder.compile_graph(graph, cluster)
 
     # Must produce multiple bundles with correct requires/exports
     assert length(bundles) >= 2
