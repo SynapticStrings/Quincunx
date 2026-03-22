@@ -3,9 +3,10 @@ defmodule Quincunx.Renderer.Worker do
   Translates and executes a single Recipe in isolation.
   Designed to be run as an asynchronous Task.
   """
-  alias Quincunx.Lily.Graph.PortRef
-  alias Quincunx.{Storage, Segment}
-  alias Quincunx.Lily.RecipeBundle
+  alias Quincunx.Topology.Graph.PortRef
+  alias Quincunx.Session.Storage
+  alias Quincunx.Editor.Segment
+  alias Quincunx.Compiler.RecipeBundle
   alias Quincunx.Renderer.Blackboard
 
   @doc """

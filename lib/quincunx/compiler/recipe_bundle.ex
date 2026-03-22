@@ -1,8 +1,8 @@
-defmodule Quincunx.Lily.RecipeBundle do
+defmodule Quincunx.Compiler.RecipeBundle do
   @moduledoc "Container for static AST and dynamic parameters."
 
-  alias Quincunx.Lily.Graph.{Node, PortRef}
-  alias Quincunx.Segment
+  alias Quincunx.Topology.Graph
+  alias Quincunx.Editor.Segment
 
   @type intervention_type :: atom()
   @type port_interventions :: %{intervention_type() => any()}
@@ -12,8 +12,8 @@ defmodule Quincunx.Lily.RecipeBundle do
           recipe: Orchid.Recipe.t(),
           requires: [Orchid.Step.io_key()],
           exports: [Orchid.Step.io_key()],
-          node_ids: [Node.id()],
-          interventions: %{PortRef.t() => port_interventions()}
+          node_ids: [Graph.Node.id()],
+          interventions: %{Graph.PortRef.t() => port_interventions()}
         }
   defstruct [
     :id,
@@ -24,12 +24,12 @@ defmodule Quincunx.Lily.RecipeBundle do
     interventions: %{}
   ]
 
-  @spec get_intervention(t(), PortRef.t(), intervention_type()) :: any()
+  @spec get_intervention(t(), Graph.PortRef.t(), intervention_type()) :: any()
   def get_intervention(%__MODULE__{} = bundle, port_ref, type) do
     get_in(bundle.interventions, [port_ref, type])
   end
 
-  @spec put_intervention(t(), PortRef.t(), intervention_type(), any()) :: t()
+  @spec put_intervention(t(), Graph.PortRef.t(), intervention_type(), any()) :: t()
   def put_intervention(%__MODULE__{} = bundle, port_ref, type, value) do
     new_interventions =
       Map.update(bundle.interventions, port_ref, %{type => value}, fn port_data ->

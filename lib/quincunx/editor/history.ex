@@ -1,6 +1,6 @@
-defmodule Quincunx.Lily.History do
+defmodule Quincunx.Editor.History do
   defmodule Operation do
-    alias Quincunx.Lily.Graph.{Node, Edge, PortRef}
+    alias Quincunx.Topology.Graph.{Node, Edge, PortRef}
 
     @type intervention_type :: :input | :override | :offset | :mask | atom()
 
@@ -24,10 +24,10 @@ defmodule Quincunx.Lily.History do
     @type t :: topology_mutation() | data_interventions() | input_declar()
   end
 
-  alias Quincunx.Lily.Graph
+  alias Quincunx.Topology.Graph
 
   @type interventions_map :: %{
-          Quincunx.Lily.Graph.PortRef.t() => %{Operation.intervention_type() => any()}
+          Graph.PortRef.t() => %{Operation.intervention_type() => any()}
         }
 
   @type effective_state :: {Graph.t(), interventions_map()}

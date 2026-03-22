@@ -1,4 +1,4 @@
-defmodule Quincunx.Storage do
+defmodule Quincunx.Session.Storage do
   @moduledoc """
   Manages isolated storage configurations for a specific session.
 

@@ -1,9 +1,9 @@
-defmodule LilyCompilerClustersTest do
+defmodule TopologyCompilerClustersTest do
   use ExUnit.Case
 
-  alias Quincunx.Lily.Graph
-  alias Quincunx.Lily.Graph.{Node, Edge, Cluster}
-  alias Quincunx.Lily.Compiler
+  alias Quincunx.Topology.{Graph, Cluster}
+  alias Quincunx.Topology.Graph.{Node, Edge}
+  alias Quincunx.Compiler
 
   test "two-cluster topology produces correct boundaries" do
     # Node A (cpu) -> Node B (gpu) -> Node C (cpu, gpu)

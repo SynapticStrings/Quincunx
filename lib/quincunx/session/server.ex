@@ -4,7 +4,8 @@ defmodule Quincunx.Session.Server do
   """
   use GenServer
 
-  alias Quincunx.{Segment, Storage}
+  alias Quincunx.Editor.Segment
+  alias Quincunx.Session.Storage
   alias Quincunx.Renderer.{Planner, Blackboard}
 
   defmodule State do

@@ -1,10 +1,10 @@
-defmodule LilyCompilerTest do
+defmodule TopologyCompilerTest do
   use ExUnit.Case
 
-  alias Quincunx.Lily.RecipeBundle
-  alias Quincunx.Lily.Graph
-  alias Quincunx.Lily.Graph.{Node, Edge, Cluster}
-  alias Quincunx.Lily.Compiler
+  alias Quincunx.Compiler.RecipeBundle
+  alias Quincunx.Topology.{Graph, Cluster}
+  alias Quincunx.Topology.Graph.{Node, Edge}
+  alias Quincunx.Compiler
 
   defp build_test_graph do
     nodes = [

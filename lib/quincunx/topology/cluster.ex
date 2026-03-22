@@ -1,9 +1,9 @@
-defmodule Quincunx.Lily.Graph.Cluster do
+defmodule Quincunx.Topology.Cluster do
   # Cluster dependencies based on user selections and dependency relationships
   # at the front end to achieve parallel control
   # i.e., isolate resource-intensive services and convert the entire parallel task
   # into a serial + parallel process.
-  alias Quincunx.Lily.Graph.{Node, Edge}
+  alias Quincunx.Topology.Graph.{Node, Edge}
 
   @type cluster_name :: atom() | String.t() | [cluster_name()]
 
@@ -14,7 +14,7 @@ defmodule Quincunx.Lily.Graph.Cluster do
   defstruct node_colors: %{},
             merge_groups: []
 
-  @spec paint_graph([Node.t()], MapSet.t(Edge.t()), Quincunx.Lily.Graph.Cluster.t()) ::
+  @spec paint_graph([Node.t()], MapSet.t(Edge.t()), Quincunx.Topology.Cluster.t()) ::
           %{Node.id() => cluster_name()}
   @doc "Return `%{node_name => final_cluster_name}`"
   def paint_graph(sorted_nodes, edges, %__MODULE__{} = clusters) do

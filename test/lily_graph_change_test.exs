@@ -1,11 +1,9 @@
-defmodule LilyGraphChangeTest do
+defmodule TopologyGraphChangeTest do
   use ExUnit.Case
 
-  # focus on
-  alias Quincunx.Lily.Graph
-  alias Quincunx.Lily.Graph.{Node, Edge}
-  # and
-  alias Quincunx.Lily.History
+  alias Quincunx.Topology.Graph
+  alias Quincunx.Topology.Graph.{Node, Edge}
+  alias Quincunx.Editor.History
 
   def init do
     dummy_step1 = fn %Orchid.Param{payload: inputs}, _ ->
@@ -109,7 +107,7 @@ defmodule LilyGraphChangeTest do
     base_graph = init()
 
     segment =
-      Enum.reduce(records(), Quincunx.Segment.new("testBinary", base_graph), &Quincunx.Segment.apply_operation(&2, &1))
+      Enum.reduce(records(), Quincunx.Editor.Segment.new("testBinary", base_graph), &Quincunx.Editor.Segment.apply_operation(&2, &1))
 
     assert {:ok, plan} = Quincunx.Renderer.Planner.build([segment])
     assert {:ok, board} = Quincunx.Renderer.Dispatcher.dispatch(plan, Quincunx.Renderer.Blackboard.new(:test))

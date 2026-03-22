@@ -1,10 +1,11 @@
-defmodule Quincunx.Lily.Compiler do
+defmodule Quincunx.Compiler do
   @moduledoc """
   The final stage of pure functional pipelines.
   Translates the effective DAG into a sequence of Orchid.Recipe.
   """
-  alias Quincunx.Lily.{Graph, History, RecipeBundle}
-  alias Quincunx.Lily.Graph.{Node, PortRef, Cluster}
+  alias Quincunx.Topology.{Graph, Graph.Node, Graph.PortRef, Cluster}
+  alias Quincunx.Editor.History
+  alias Quincunx.Compiler.RecipeBundle
 
   @spec compile_graph(Graph.t()) :: {:error, :cycle_detected} | {:ok, [RecipeBundle.t()]}
   def compile_graph(%Graph{} = graph, cluster_declara \\ %Cluster{}) do

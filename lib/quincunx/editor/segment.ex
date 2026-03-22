@@ -1,18 +1,19 @@
-defmodule Quincunx.Segment do
+defmodule Quincunx.Editor.Segment do
   @moduledoc """
   The smallest unit for incremental generation.
   It holds the static topology, user edit history, and cached runtime references.
   """
 
-  alias Quincunx.Lily.History.Operation
-  alias Quincunx.Lily.{Graph, History, Compiler, Graph.Cluster, RecipeBundle}
+  alias Quincunx.Editor.History
+  alias Quincunx.Topology.{Graph, Cluster}
+  alias Quincunx.Compiler
 
   @type id :: atom() | String.t()
 
   @type t :: %__MODULE__{
           id: id(),
           graph_with_cluster: {Graph.t(), Cluster.t()},
-          recipe_bundles: nil | [RecipeBundle.t()],
+          recipe_bundles: nil | [Compiler.RecipeBundle.t()],
           history: History.t(),
           snapshots: %{optional(atom()) => any()},
           extra: map()
@@ -37,7 +38,7 @@ defmodule Quincunx.Segment do
     }
   end
 
-  @spec apply_operation(t(), Operation.t()) :: t()
+  @spec apply_operation(t(), History.Operation.t()) :: t()
   def apply_operation(%__MODULE__{} = segment, operation) do
     %{segment | history: History.push(segment.history, operation)}
   end
@@ -80,27 +81,20 @@ defmodule Quincunx.Segment do
   defp merge_segments_per_graph({graph, cluster}, segments_and_interventions) do
     case Compiler.compile_graph(graph, cluster) do
       {:ok, static_recipes} ->
-        compiled_group =
-          Enum.map(
-            segments_and_interventions,
-            fn %{
-                 segment: seg,
-                 interventions: interventions
-               } ->
-              %{
-                seg
-                | recipe_bundles:
-                    static_recipes
-                    |> List.wrap()
-                    |> Compiler.bind_interventions(interventions)
-              }
-            end
-          )
-
-        {:ok, compiled_group}
+        {:ok, Enum.map(segments_and_interventions, &do_merge_segment(&1, static_recipes))}
 
       {:error, _reason} = err ->
         err
     end
+  end
+
+  defp do_merge_segment(%{segment: seg, interventions: interventions}, static_recipes) do
+    %{
+      seg
+      | recipe_bundles:
+          static_recipes
+          |> List.wrap()
+          |> Compiler.bind_interventions(interventions)
+    }
   end
 end

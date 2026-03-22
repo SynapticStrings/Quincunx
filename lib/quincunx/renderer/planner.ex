@@ -2,8 +2,8 @@ defmodule Quincunx.Renderer.Planner do
   @moduledoc """
   Aligning `Quincunx.Segment`s into pipeline batch.
   """
-  alias Quincunx.Segment
-  alias Quincunx.Lily.RecipeBundle
+  alias Quincunx.Editor.Segment
+  alias Quincunx.Compiler.RecipeBundle
 
   defmodule Stage do
     @type task_def :: {Segment.id(), RecipeBundle.t()}
@@ -28,7 +28,7 @@ defmodule Quincunx.Renderer.Planner do
     end
   end
 
-  @spec build([Quincunx.Segment.t()]) ::
+  @spec build([Segment.t()]) ::
           {:error, any()} | {:ok, Quincunx.Renderer.Planner.Plan.t()}
   def build(segments) do
     with {:ok, segments_with_recipes} <- Segment.compile_to_recipes(segments) do

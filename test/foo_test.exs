@@ -1,9 +1,10 @@
 defmodule Quincunx.SegmentBatchTest do
   use ExUnit.Case
 
-  alias Quincunx.Segment
-  alias Quincunx.Lily.{Graph, History, RecipeBundle}
-  alias Quincunx.Lily.Graph.{Node, Edge, Cluster}
+  alias Quincunx.Editor.{Segment, History}
+  alias Quincunx.Topology.{Graph, Cluster}
+  alias Quincunx.Compiler.RecipeBundle
+  alias Quincunx.Topology.Graph.{Node, Edge}
 
   defp build_graph_v1 do
     Graph.new()
