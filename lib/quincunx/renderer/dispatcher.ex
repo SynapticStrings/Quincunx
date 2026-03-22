@@ -12,20 +12,17 @@ defmodule Quincunx.Renderer.Dispatcher do
     concurrency = Keyword.get(opts, :concurrency, System.schedulers_online())
     timeout = Keyword.get(opts, :timeout, :infinity)
 
-    orchid_executor_and_opts =
-      Keyword.get(opts, :orchid_executor_and_opts, {Orchid.Executor.Serial, []})
-
     orchid_baggage = Keyword.get(opts, :orchid_baggage, [])
 
     Enum.reduce_while(plan.stages, {:ok, initial_board}, fn stage, {:ok, current_board} ->
       case run_stage(
              stage,
              current_board,
-             storage_ctx,
              concurrency,
              timeout,
-             orchid_executor_and_opts,
-             orchid_baggage
+             %{storage_ctx: storage_ctx},
+             orchid_baggage,
+             []
            ) do
         {:ok, updated_board} ->
           {:cont, {:ok, updated_board}}
@@ -39,24 +36,17 @@ defmodule Quincunx.Renderer.Dispatcher do
   defp run_stage(
          stage,
          blackboard,
-         storage_ctx,
          concurrency,
          timeout,
-         orchid_executor_and_opts,
-         orchid_baggage
+         features,
+         orchid_baggage,
+         orchid_opts
        ) do
     stream =
       Task.async_stream(
         stage.tasks,
         fn {seg_id, bundle} ->
-          Worker.run(
-            seg_id,
-            bundle,
-            blackboard,
-            storage_ctx,
-            orchid_executor_and_opts,
-            orchid_baggage
-          )
+          Worker.run(seg_id, bundle, blackboard, features, orchid_baggage, orchid_opts)
         end,
         max_concurrency: concurrency,
         timeout: timeout,

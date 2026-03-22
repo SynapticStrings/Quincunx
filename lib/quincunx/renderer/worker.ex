@@ -16,34 +16,48 @@ defmodule Quincunx.Renderer.Worker do
           Segment.id(),
           RecipeBundle.t(),
           Blackboard.t(),
-          Storage.t() | nil,
-          {module(), keyword()},
+          map(),
           Enumerable.t(),
-          term()
+          keyword()
         ) ::
           {:ok, Segment.id(), map()} | {:error, term()}
   def run(
         seg_id,
         %RecipeBundle{} = bundle,
         blackboard,
-        storage_ctx,
-        orchid_executor_and_opts,
+        feaures,
         orchid_custom_baggage,
-        _orchid_restart_opts \\ nil
+        orchid_opts
       ) do
     dynamic_inputs = resolve_dependencies(seg_id, bundle, blackboard)
 
     # TODO: merge static interventions
+    # required Hook
 
+    {recipe_to_run, final_run_opts} =
+      apply_recipe_and_opts(seg_id, bundle, orchid_custom_baggage, orchid_opts, feaures)
+
+    case Orchid.run(recipe_to_run, dynamic_inputs, final_run_opts) do
+      {:ok, results} ->
+        {:ok, seg_id, results}
+
+      {:error, reason} ->
+        {:error, {:orchid_run_failed, seg_id, reason}}
+    end
+  end
+
+  defp apply_recipe_and_opts(seg_id, bundle, orchid_custom_baggage, orchid_opts, %{
+         storage_ctx: storage_ctx
+       }) do
     base_baggage =
       for {k, v} <- orchid_custom_baggage,
           into: %{segments_id: seg_id},
           do: {k, v}
 
-    base_run_opts = [
-      executor_and_opts: orchid_executor_and_opts,
-      baggage: base_baggage
-    ]
+    base_run_opts =
+      for {k, v} <- orchid_opts,
+          into: [baggage: base_baggage],
+          do: {k, v}
 
     {recipe_to_run, final_run_opts} =
       case storage_ctx do
@@ -54,13 +68,7 @@ defmodule Quincunx.Renderer.Worker do
           {bundle.recipe, base_run_opts}
       end
 
-    case Orchid.run(recipe_to_run, dynamic_inputs, final_run_opts) do
-      {:ok, results} ->
-        {:ok, seg_id, results}
-
-      {:error, reason} ->
-        {:error, {:orchid_run_failed, seg_id, reason}}
-    end
+    {recipe_to_run, final_run_opts}
   end
 
   defp resolve_dependencies(seg_id, %RecipeBundle{} = bundle, %Blackboard{} = blackboard) do
