@@ -13,9 +13,7 @@ defmodule Quincunx.Renderer.Dispatcher do
 
     orchid_baggage = Keyword.get(opts, :orchid_baggage, [])
 
-    ## Features
-    storage_key = OrchidPlugin.Cache.scope_name()
-    storage_ctx = Keyword.get(opts, :storage)
+    features = get_features(opts)
 
     Enum.reduce_while(plan.stages, {:ok, initial_board}, fn stage, {:ok, current_board} ->
       case run_stage(
@@ -23,7 +21,7 @@ defmodule Quincunx.Renderer.Dispatcher do
              current_board,
              concurrency,
              timeout,
-             %{storage_key => storage_ctx},
+             features,
              orchid_baggage,
              []
            ) do
@@ -34,6 +32,18 @@ defmodule Quincunx.Renderer.Dispatcher do
           {:halt, {:error, reason}}
       end
     end)
+  end
+
+  def get_features(opts) do
+    # Storage
+    storage_key = OrchidPlugin.Cache.scope_name()
+    storage_ctx = Keyword.get(opts, :storage)
+
+    # Instrument
+
+    # Interventions
+
+    %{storage_key => storage_ctx}
   end
 
   defp run_stage(
