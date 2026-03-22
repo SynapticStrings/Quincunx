@@ -22,6 +22,18 @@ defmodule Quincunx.Editor.History do
             | {:clear_interventions, PortRef.t()}
 
     @type t :: topology_mutation() | data_interventions() | input_declar()
+
+    def topology?(op)
+        when elem(op, 0) in [
+               :add_node,
+               :update_node,
+               :remove_node,
+               :add_edge,
+               :remove_edge
+             ],
+        do: true
+
+    def topology?(_), do: false
   end
 
   alias Quincunx.Topology.Graph
@@ -61,75 +73,5 @@ defmodule Quincunx.Editor.History do
 
   def redo(%__MODULE__{undo_stack: undo, redo_stack: [next_op | rest_redo]} = history) do
     %{history | undo_stack: [next_op | undo], redo_stack: rest_redo}
-  end
-
-  @doc """
-  Overlay all historical records onto the `base_graph` in chronological order.
-
-  Output the valid states that the Compiler and Orchid need.
-  """
-  @spec resolve(Graph.t(), t()) :: effective_state()
-  def resolve(%Graph{} = base_graph, %__MODULE__{undo_stack: undo_stack}) do
-    initial_state = %{graph: base_graph, interventions: %{}}
-
-    undo_stack
-    |> Enum.reverse()
-    |> Enum.reduce(initial_state, &apply_operation/2)
-    |> (fn state -> {state.graph, state.interventions} end).()
-  end
-
-  defp apply_operation({:add_node, node}, state) do
-    %{state | graph: Graph.add_node(state.graph, node)}
-  end
-
-  defp apply_operation({:update_node, node_id, new_node}, state) do
-    %{state | graph: Graph.update_node(state.graph, node_id, new_node)}
-  end
-
-  defp apply_operation({:remove_node, node_id}, state) do
-    %{state | graph: Graph.remove_node(state.graph, node_id)}
-  end
-
-  defp apply_operation({:add_edge, edge}, state) do
-    %{state | graph: Graph.add_edge(state.graph, edge)}
-  end
-
-  defp apply_operation({:remove_edge, edge}, state) do
-    %{state | graph: Graph.remove_edge(state.graph, edge)}
-  end
-
-  defp apply_operation({:set_intervention, port_ref, type, value}, state) do
-    new_interventions =
-      Map.update(
-        state.interventions,
-        port_ref,
-        %{type => value},
-        fn port_data -> Map.put(port_data, type, value) end
-      )
-
-    %{state | interventions: new_interventions}
-  end
-
-  defp apply_operation({:remove_intervention, port_ref, type}, state) do
-    new_interventions =
-      case Map.fetch(state.interventions, port_ref) do
-        {:ok, port_data} ->
-          clean_port_data = Map.delete(port_data, type)
-
-          if map_size(clean_port_data) == 0 do
-            Map.delete(state.interventions, port_ref)
-          else
-            Map.put(state.interventions, port_ref, clean_port_data)
-          end
-
-        :error ->
-          state.interventions
-      end
-
-    %{state | interventions: new_interventions}
-  end
-
-  defp apply_operation({:clear_interventions, port_ref}, state) do
-    %{state | interventions: Map.delete(state.interventions, port_ref)}
   end
 end

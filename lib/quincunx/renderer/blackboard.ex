@@ -1,25 +1,27 @@
 defmodule Quincunx.Renderer.Blackboard do
   alias Quincunx.Editor.Segment
   alias Quincunx.Session.Storage
-  alias Quincunx.Topology.Graph
+
+  @type session_id :: term()
+  @type addr :: {Segment.id(), Orchid.Step.io_key()}
 
   @type t :: %__MODULE__{
-          segment_id: Segment.id(),
-          memory: %{Graph.PortRef.t() => Orchid.Param.t() | any()},
+          session_id: session_id(),
+          memory: %{addr() => Orchid.Param.t() | any()},
           cache_ref: nil | Storage.t()
         }
 
-  defstruct [:segment_id, memory: %{}, cache_ref: nil]
+  defstruct [:session_id, memory: %{}, cache_ref: nil]
 
-  @spec new(Segment.id()) :: t()
-  def new(segment_id), do: %__MODULE__{segment_id: segment_id, memory: %{}}
+  @spec new(session_id()) :: t()
+  def new(session_id), do: %__MODULE__{session_id: session_id, memory: %{}}
 
-  @spec put(t(), %{Graph.PortRef.t() => Orchid.Param.t()}) :: t()
+  @spec put(t(), %{addr() => Orchid.Param.t()}) :: t()
   def put(%__MODULE__{} = board, new_data) when is_map(new_data) do
     %{board | memory: Map.merge(board.memory, new_data)}
   end
 
-  @spec fetch_requires(t(), [Graph.PortRef.t()]) :: %{Graph.PortRef.t() => Orchid.Param.t()}
+  @spec fetch_requires(t(), [addr()]) :: %{addr() => Orchid.Param.t()}
   def fetch_requires(%__MODULE__{memory: mem}, required_keys) do
     required_keys
     |> Enum.map(fn key -> {key, Map.get(mem, key)} end)

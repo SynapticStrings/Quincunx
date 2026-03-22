@@ -76,22 +76,22 @@ defmodule TopologyGraphChangeTest do
       |> History.undo()
       |> History.redo()
 
-    {graph, _offset} = History.resolve(init(), history)
+    %{graph: graph} = History.Resolver.resolve(history, init())
 
     assert [_, _] = Graph.get_in_edges(graph, :_3)
     assert [_] = Graph.get_in_edges(graph, :_4)
 
-    # {:ok, _blackboard} =
-    #   Enum.reduce(
-    #     records,
-    #     Quincunx.Segment.new(:test, graph),
-    #     &Quincunx.Segment.apply_operation(&2, &1)
-    #   )
-    #   |> List.wrap()
-    #   |> Quincunx.Renderer.Planner.build()
-    #   |> elem(1)
-    #   |> Quincunx.Renderer.Dispatcher.dispatch(Quincunx.Renderer.Blackboard.new(:test))
-    #   |> IO.inspect()
+    {:ok, _blackboard} =
+      Enum.reduce(
+        records(),
+        Quincunx.Editor.Segment.new(:current_session, graph),
+        &Quincunx.Editor.Segment.apply_operation(&2, &1)
+      )
+      |> List.wrap()
+      |> Quincunx.Renderer.Planner.build()
+      |> elem(1)
+      |> Quincunx.Renderer.Dispatcher.dispatch(Quincunx.Renderer.Blackboard.new(:test))
+      |> IO.inspect()
   end
 
   test "blank history" do
