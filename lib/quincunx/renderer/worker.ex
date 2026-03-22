@@ -27,8 +27,8 @@ defmodule Quincunx.Renderer.Worker do
         %RecipeBundle{} = bundle,
         blackboard,
         storage_ctx,
-        orchid_executor_and_opts \\ {Orchid.Executor.Serial, []},
-        orchid_custom_baggage \\ [],
+        orchid_executor_and_opts,
+        orchid_custom_baggage,
         _orchid_restart_opts \\ nil
       ) do
     dynamic_inputs = resolve_dependencies(seg_id, bundle, blackboard)
