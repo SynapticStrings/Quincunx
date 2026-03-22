@@ -1,0 +1,3 @@
+defmodule QuincunxTest.HistoryFactory do
+  # ...
+end

@@ -1,0 +1,3 @@
+defmodule QuincunxTest.GraphFactory do
+  # ...
+end

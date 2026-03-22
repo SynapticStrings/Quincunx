@@ -23,6 +23,7 @@ defmodule Quincunx.Editor.History do
 
     @type t :: topology_mutation() | data_interventions() | input_declar()
 
+    @spec topology?(t()) :: boolean()
     def topology?(op)
         when elem(op, 0) in [
                :add_node,
