@@ -4,7 +4,7 @@ defmodule Quincunx.MixProject do
   def project do
     [
       app: :quincunx,
-      version: "0.3.2",
+      version: "0.3.3",
       elixir: "~> 1.18",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,

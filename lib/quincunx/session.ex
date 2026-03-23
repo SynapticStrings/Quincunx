@@ -3,11 +3,9 @@ defmodule Quincunx.Session do
   Public API for managing incremental generation sessions.
   """
 
-  alias Quincunx.Session.Server
-
   @type session :: GenServer.server()
 
-  def start(session_id, opts \\ []) do
+  def start(session_id, opts \\ []) when is_atom(session_id) do
     session_supervisor_spec = %{
       id: session_id,
       start: {Quincunx.Session.InstanceSupervisor, :start_link, [session_id, opts]}
