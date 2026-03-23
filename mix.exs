@@ -28,7 +28,7 @@ defmodule Quincunx.MixProject do
   defp deps do
     [
       {:orchid, "~> 0.5"},
-      {:orchid_symbiont, "~> 0.1"},
+      {:orchid_symbiont, "~> 0.2"},
       {:orchid_stratum, "~> 0.1"}
     ]
   end

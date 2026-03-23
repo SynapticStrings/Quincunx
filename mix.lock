@@ -1,6 +1,6 @@
 %{
   "orchid": {:hex, :orchid, "0.5.6", "efac5740e906d1cc1d6461eecfcb83196f4ec45424eeb60363097c6eb3c6481d", [:mix], [{:telemetry, "~> 1.3", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "a93c9be594e6ec25fca60d8816516f3d892af30813d9692f3d83aef2d5acb252"},
   "orchid_stratum": {:hex, :orchid_stratum, "0.1.0", "8bac49b9c3be1b52e5b921210f3433950f6272b8e1e4811b3e2d4b4977fc1104", [:mix], [{:orchid, "~> 0.5", [hex: :orchid, repo: "hexpm", optional: false]}], "hexpm", "5f6e255be397613bda5e48095f27933dfba5f4dab4729694848cf8e7e62f3817"},
-  "orchid_symbiont": {:hex, :orchid_symbiont, "0.1.4", "34373879a1ebdf7eda74d3cb6774956b9101909b7ed2221b931d850a794608f8", [:mix], [{:orchid, "~> 0.5", [hex: :orchid, repo: "hexpm", optional: false]}], "hexpm", "bf96181affcc3045189407c7f773d9b78e822c8aad7fdcefa039b154231fde20"},
+  "orchid_symbiont": {:hex, :orchid_symbiont, "0.2.0", "ad6ab130a1bbec4e6db06c05f05efaf45f42f79e242782d72f41ad0239d588b0", [:mix], [{:orchid, "~> 0.5", [hex: :orchid, repo: "hexpm", optional: false]}], "hexpm", "06b67622b992869d83e7a2e0f7dc28a52d2b5c18bb2699b3de6a402736979656"},
   "telemetry": {:hex, :telemetry, "1.4.1", "ab6de178e2b29b58e8256b92b382ea3f590a47152ca3651ea857a6cae05ac423", [:rebar3], [], "hexpm", "2172e05a27531d3d31dd9782841065c50dd5c3c7699d95266b2edd54c2dafa1c"},
 }

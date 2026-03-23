@@ -8,10 +8,12 @@ defmodule Quincunx.Session do
   @type session :: GenServer.server()
 
   def start(session_id, opts \\ []) do
-    DynamicSupervisor.start_child(
-      Quincunx.SessionSupervisor,
-      {Server, Keyword.put(opts, :session_id, session_id)}
-    )
+    session_supervisor_spec = %{
+      id: session_id,
+      start: {Quincunx.Session.InstanceSupervisor, :start_link, [session_id, opts]}
+    }
+
+    DynamicSupervisor.start_child(Quincunx.SessionSupervisor, session_supervisor_spec)
   end
 
   def stop(session_id) do
