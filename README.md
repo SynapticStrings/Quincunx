@@ -31,42 +31,6 @@ And Quincunx isn't:
 * A training toolkit
 * An acoustic model implementation
 
----
-
-## Architecture & Key Concepts (Click to expand)
-
-### Granularity Control of Incremental Generation
-
-In Quincunx, the indivisible unit of incremental computation is the **Segment**.
-Media data (like music or animation) usually exhibits strong temporal and spatial locality. Modifying a single measure of notes shouldn't trigger a full-song re-render.
-
-*   **Pure Data Topology (Lily Graph)**: Each Segment uses a deterministic Directed Acyclic Graph (DAG) to describe computational steps.
-*   **Compilation & Alignment**: Before execution, Quincunx compiles graphs from multiple Segments into standardized `Orchid.Recipe` sets, utilizing **Stages as execution barriers** to push data flow forward safely and in parallel.
-
-### Human Intervention vs. Generative Models
-
-Because the base Lily Graph is immutable, Quincunx introduces a **History State Machine**:
-*   User interventions do not permanently mutate the base topology. Instead, they are pushed onto an undo/redo stack as `Operation`s (e.g., `{:set_intervention, port, data}`).
-*   During incremental rendering, the `Compiler` treats these interventions as constant parameters, performing **Late Binding** into the execution context. 
-
-### Deterministic Caching Mechanism
-
-When a node executes, the system calculates a fingerprint ( $\mathrm{StepKey} = \mathrm{SHA256}(\mathrm{Impl} \parallel \mathrm{InputHashes} \parallel \mathrm{SortedOpts})$ ). A cache hit immediately swaps heavy computations with lightweight memory references.
-
-Unlike global cache pools, Quincunx provisions isolated `Storage` per document/session leveraging BEAM process semantics. **When a document process terminates, the VM instantly garbage collects the associated cache.**
-
-### Heterogeneous Device Scheduling
-
-Quincunx manages heterogeneous routing via **Cluster (Color Painting)**. Modifying the `Cluster` declaration will trigger **Topology Tearing**: Dependent nodes belonging to different clusters are automatically split into separate `Orchid.Recipe`s. This allows the host application to dispatch heavy tensors to dedicated Python logic while keeping lightweight data transformations local.
-
-### The Execution Triad
-1. **Planner (Pure Functional)**: Resolves segment histories, compiles them, and outputs a deterministic plan grouped by `Stage`s.
-2. **Dispatcher (OTP Coordinator)**: An asynchronous state machine that executes tasks stage by stage, maintaining barrier-synchronization.
-3. **Worker (Stateless Runner)**: Wraps `Orchid.run/3`, resolves dependencies from the `Blackboard`, and applies cache bypassing.
-</details>
-
----
-
 ## Quick Start
 
 ### OTP Version (Recommended)
@@ -141,3 +105,35 @@ Dispatcher.dispatch(plan, blackboard, orchid_opts)
 ```
 
 Your `Orchid.Runner.Hook` can then intercept the execution flow, process these Baggage variables, and seamlessly integrate into Quincunx's lifecycle.
+
+## Architecture & Key Concepts
+
+### Granularity Control of Incremental Generation
+
+In Quincunx, the indivisible unit of incremental computation is the **Segment**.
+Media data (like music or animation) usually exhibits strong temporal and spatial locality. Modifying a single measure of notes shouldn't trigger a full-song re-render.
+
+*   **Pure Data Topology (Lily Graph)**: Each Segment uses a deterministic Directed Acyclic Graph (DAG) to describe computational steps.
+*   **Compilation & Alignment**: Before execution, Quincunx compiles graphs from multiple Segments into standardized `Orchid.Recipe` sets, utilizing **Stages as execution barriers** to push data flow forward safely and in parallel.
+
+### Human Intervention vs. Generative Models
+
+Because the base Lily Graph is immutable, Quincunx introduces a **History State Machine**:
+*   User interventions do not permanently mutate the base topology. Instead, they are pushed onto an undo/redo stack as `Operation`s (e.g., `{:set_intervention, port, data}`).
+*   During incremental rendering, the `Compiler` treats these interventions as constant parameters, performing **Late Binding** into the execution context. 
+
+### Deterministic Caching Mechanism
+
+When a node executes, the system calculates a fingerprint ( $\mathrm{StepKey} = \mathrm{SHA256}(\mathrm{Impl} \parallel \mathrm{InputHashes} \parallel \mathrm{SortedOpts})$ ). A cache hit immediately swaps heavy computations with lightweight memory references.
+
+Unlike global cache pools, Quincunx provisions isolated `Storage` per document/session leveraging BEAM process semantics. **When a document process terminates, the VM instantly garbage collects the associated cache.**
+
+### Heterogeneous Device Scheduling
+
+Quincunx manages heterogeneous routing via **Cluster (Color Painting)**. Modifying the `Cluster` declaration will trigger **Topology Tearing**: Dependent nodes belonging to different clusters are automatically split into separate `Orchid.Recipe`s. This allows the host application to dispatch heavy tensors to dedicated Python logic while keeping lightweight data transformations local.
+
+### The Execution Triad
+1. **Planner (Pure Functional)**: Resolves segment histories, compiles them, and outputs a deterministic plan grouped by `Stage`s.
+2. **Dispatcher (OTP Coordinator)**: An asynchronous state machine that executes tasks stage by stage, maintaining barrier-synchronization.
+3. **Worker (Stateless Runner)**: Wraps `Orchid.run/3`, resolves dependencies from the `Blackboard`, and applies cache bypassing.
+</details>
