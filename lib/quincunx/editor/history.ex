@@ -1,5 +1,11 @@
 defmodule Quincunx.Editor.History do
+  @moduledoc """
+  ...
+  """
+
   defmodule Operation do
+    @moduledoc "To record operations."
+
     alias Quincunx.Topology.Graph.{Node, Edge, PortRef}
 
     @type intervention_type :: :input | :override | :offset | :mask | atom()

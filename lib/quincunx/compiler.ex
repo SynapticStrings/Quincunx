@@ -22,14 +22,16 @@ defmodule Quincunx.Compiler do
 
     grouped_by_topology = Enum.group_by(resolved_items, &{&1.graph, &1.segment.cluster})
 
+    apply_bundles = fn item, static_recipes ->
+      bundles = RecipeBundle.bind_interventions(static_recipes, item.interventions)
+      {item.segment.id, bundles}
+    end
+
     Enum.reduce_while(grouped_by_topology, {:ok, []}, fn {{graph, cluster}, items}, {:ok, acc} ->
       case Quincunx.Compiler.GraphBuilder.compile_graph(graph, cluster) do
         {:ok, static_recipes} ->
           compiled_pairs =
-            Enum.map(items, fn item ->
-              bundles = RecipeBundle.bind_interventions(static_recipes, item.interventions)
-              {item.segment.id, bundles}
-            end)
+            Enum.map(items, &apply_bundles.(&1, static_recipes))
 
           {:cont, {:ok, compiled_pairs ++ acc}}
 

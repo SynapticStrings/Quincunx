@@ -62,7 +62,8 @@ defmodule Quincunx.Topology.Graph do
     end
   end
 
-  # TODO: Add adjacency lists in future
+  # May add adjacency lists in future
+  # (if graph is REALLY big)
   # in/out edge => %{Node.id() => [Edge.t()]}
   @type t :: %__MODULE__{
           nodes: %{Node.id() => Node.t()},

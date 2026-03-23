@@ -29,7 +29,8 @@ defmodule Quincunx.MixProject do
     [
       {:orchid, "~> 0.5"},
       {:orchid_symbiont, "~> 0.2"},
-      {:orchid_stratum, "~> 0.1"}
+      {:orchid_stratum, "~> 0.1"},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 end

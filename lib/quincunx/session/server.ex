@@ -60,18 +60,22 @@ defmodule Quincunx.Session.Server do
 
   @impl true
   def handle_cast({:dispatch, dispatch_opts}, %State{} = state) do
-    with {new_state, {:ok, plan}} <- compile_and_plan(state) do
-      if state.render_tasks do
-        Task.Supervisor.terminate_child(Quincunx.RenderTaskSupervisor, new_state.render_tasks.pid)
-      end
+    case compile_and_plan(state) do
+      {new_state, {:ok, plan}} ->
+        if state.render_tasks do
+          Task.Supervisor.terminate_child(
+            Quincunx.RenderTaskSupervisor,
+            new_state.render_tasks.pid
+          )
+        end
 
-      task =
-        Task.Supervisor.async_nolink(Quincunx.RenderTaskSupervisor, fn ->
-          Dispatcher.dispatch(plan, new_state.blackboard, dispatch_opts)
-        end)
+        task =
+          Task.Supervisor.async_nolink(Quincunx.RenderTaskSupervisor, fn ->
+            Dispatcher.dispatch(plan, new_state.blackboard, dispatch_opts)
+          end)
 
-      {:noreply, %{new_state | render_tasks: task}}
-    else
+        {:noreply, %{new_state | render_tasks: task}}
+
       {_legacy_state, {:error, _}} = _err ->
         {:noreply, state}
     end

@@ -19,13 +19,13 @@ defmodule Quincunx.Topology.Cluster do
   @doc "Return `%{node_name => final_cluster_name}`"
   def paint_graph(sorted_nodes, edges, %__MODULE__{} = clusters) do
     Enum.reduce(sorted_nodes, %{}, fn node_id, color_map ->
-      cond do
-        explicit_color = Map.get(clusters.node_colors, node_id) ->
-          Map.put(color_map, node_id, explicit_color)
+      explicit_color =
+        case Map.get(clusters.node_colors, node_id) do
+          nil -> get_upstream_colors(node_id, edges, color_map)
+          explicit_color -> explicit_color
+        end
 
-        true ->
-          Map.put(color_map, node_id, get_upstream_colors(node_id, edges, color_map))
-      end
+      Map.put(color_map, node_id, explicit_color)
     end)
     # normalize clusters
     |> Enum.map(fn {k, v} ->

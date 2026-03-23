@@ -12,11 +12,11 @@ defmodule OrchidPlugin.Cache do
           :storage_ctx => nil | Quincunx.Session.Storage.t()
         }) :: Orchid.Plugin.orchid_tuple()
   def apply_plugin({recipe, base_run_opts}, context) do
-    with %{storage_ctx: storage_ctx} = context,
-         %Storage{meta_conf: meta, blob_conf: blob} <- storage_ctx do
-      OrchidStratum.apply_cache(recipe, meta, blob, base_run_opts)
-    else
-      nil ->
+    case context do
+      %{storage_ctx: %Storage{meta_conf: meta, blob_conf: blob}} ->
+        OrchidStratum.apply_cache(recipe, meta, blob, base_run_opts)
+
+      _ ->
         {recipe, base_run_opts}
     end
   end
