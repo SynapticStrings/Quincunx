@@ -59,33 +59,31 @@ defmodule Quincunx.Compiler.GraphBuilder do
       graph.edges
       |> Enum.reject(&(&1.from_node in cluster_nodes_set and &1.to_node in cluster_nodes_set))
 
-    external_in = external_edges |> Enum.filter(&(&1.to_node in cluster_nodes_set))
-    external_out = external_edges |> Enum.filter(&(&1.from_node in cluster_nodes_set))
+    in_keys =
+      external_edges
+      |> Enum.filter(&(&1.to_node in cluster_nodes_set))
+      |> Enum.map(&PortRef.to_orchid_key({:port, &1.from_node, &1.from_port}))
 
-    in_keys = Enum.map(external_in, &PortRef.to_orchid_key({:port, &1.from_node, &1.from_port}))
-    out_keys = Enum.map(external_out, &PortRef.to_orchid_key({:port, &1.from_node, &1.from_port}))
+    out_keys =
+      external_edges
+      |> Enum.filter(&(&1.from_node in cluster_nodes_set))
+      |> Enum.map(&PortRef.to_orchid_key({:port, &1.from_node, &1.from_port}))
 
-    edges_by_to_node = Enum.group_by(graph.edges, & &1.to_node)
-    edges_by_from_node = Enum.group_by(graph.edges, & &1.from_node)
+    dangling_inputs = Enum.flat_map(node_ids_in_cluster, &get_dangling_port(&1, graph, :inputs))
+    dangling_outputs = Enum.flat_map(node_ids_in_cluster, &get_dangling_port(&1, graph, :outputs))
 
-    dangling_inputs =
-      Enum.flat_map(node_ids_in_cluster, &get_dangling_port(&1, graph, :inputs, edges_by_to_node))
-
-    dangling_outputs =
-      Enum.flat_map(
-        node_ids_in_cluster,
-        &get_dangling_port(&1, graph, :outputs, edges_by_from_node)
-      )
-
-    requires = Enum.uniq(in_keys ++ dangling_inputs)
-    exports = Enum.uniq(out_keys ++ dangling_outputs)
-
-    {requires, exports}
+    {Enum.uniq(in_keys ++ dangling_inputs), Enum.uniq(out_keys ++ dangling_outputs)}
   end
 
-  defp get_dangling_port(current_node_id, graph, direction, edges_attached_to_node) do
+  defp get_dangling_port(current_node_id, graph, direction) do
+    group_func = if direction == :outputs, do: & &1.from_node, else: & &1.to_node
+
     node = graph.nodes[current_node_id]
-    edges = Map.get(edges_attached_to_node, current_node_id, [])
+
+    edges =
+      graph.edges
+      |> Enum.group_by(group_func)
+      |> Map.get(current_node_id, [])
 
     ports = if direction == :outputs, do: node.outputs, else: node.inputs
     match_field = if direction == :outputs, do: :from_port, else: :to_port
