@@ -4,30 +4,33 @@ defmodule Quincunx.Renderer.Dispatcher do
 
   Sole responsibility: fan-out tasks per stage, collect results,
   enforce barrier before next stage.  All configuration is carried
-  by `Renderer.Configuration`.
+  by `Renderer.Configurator`.
   """
 
-  alias Quincunx.Renderer.{Planner, Worker, Blackboard, Configuration}
+  alias Quincunx.Renderer.{Planner, Worker, Blackboard, Configurator}
 
-  @spec dispatch(Planner.Plan.t(), Blackboard.t(), keyword()) ::
+  @spec dispatch(Planner.Plan.t(), Blackboard.t(), keyword() | Configurator.t()) ::
           {:ok, Blackboard.t()} | {:error, term()}
-  def dispatch(%Planner.Plan{} = plan, %Blackboard{} = board, opts \\ []) do
-    ctx = Configuration.new(opts)
+  def dispatch(plan, board, opts_or_conf \\ [])
 
+  def dispatch(%Planner.Plan{} = plan, %Blackboard{} = board, opts) when is_list(opts),
+    do: dispatch(plan, board, Configurator.new(opts))
+
+  def dispatch(plan, board, %Configurator{} = conf) do
     Enum.reduce_while(plan.stages, {:ok, board}, fn stage, {:ok, current_board} ->
-      case run_stage(stage, current_board, ctx) do
+      case run_stage(stage, current_board, conf) do
         {:ok, updated_board} -> {:cont, {:ok, updated_board}}
         {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
   end
 
-  defp run_stage(stage, blackboard, %Configuration{} = ctx) do
+  defp run_stage(stage, blackboard, %Configurator{} = conf) do
     stage.tasks
     |> Task.async_stream(
-      fn {seg_id, bundle} -> Worker.run(seg_id, bundle, blackboard, ctx) end,
-      max_concurrency: ctx.concurrency,
-      timeout: ctx.timeout,
+      fn {seg_id, bundle} -> Worker.run(seg_id, bundle, blackboard, conf) end,
+      max_concurrency: conf.concurrency,
+      timeout: conf.timeout,
       ordered: false
     )
     |> Enum.reduce_while({:ok, blackboard}, fn

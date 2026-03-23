@@ -3,8 +3,6 @@ defmodule Orchid.Plugin do
 
   @type context_name :: atom()
 
-  @callback scope_name() :: context_name()
-
-  @callback apply_plugin(orchid_tuple(), %{context_name() => plugin_context :: term()}) ::
+  @callback apply_plugin(orchid_tuple(), plugin_context :: term()) ::
               orchid_tuple()
 end

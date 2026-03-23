@@ -1,4 +1,4 @@
-defmodule Quincunx.Renderer.Configuration do
+defmodule Quincunx.Renderer.Configurator do
   @moduledoc """
   Immutable render-pass configuration.
 
@@ -9,7 +9,7 @@ defmodule Quincunx.Renderer.Configuration do
 
   ## Options
 
-    * `:plugins`        – ordered list of `Orchid.Plugin` modules
+    * `:plugins`        – ordered list of `{plugin, context}` tuples
     * `:orchid_baggage` – keyword/map merged into every Orchid run's baggage
     * `:orchid_opts`    – extra keyword opts forwarded to `Orchid.run/3`
     * `:concurrency`    – max parallel workers per stage
@@ -18,8 +18,7 @@ defmodule Quincunx.Renderer.Configuration do
   """
 
   @type t :: %__MODULE__{
-          plugins: [module()],
-          scopes: %{atom() => term()},
+          plugins: [{module(), context :: any()}],
           orchid_baggage: map(),
           orchid_opts: keyword(),
           concurrency: pos_integer(),
@@ -27,21 +26,17 @@ defmodule Quincunx.Renderer.Configuration do
         }
 
   defstruct plugins: [],
-            scopes: %{},
             orchid_baggage: %{},
             orchid_opts: [],
             concurrency: System.schedulers_online(),
             timeout: :infinity
 
-  @default_plugins [OrchidPlugin.Cache, OrchidPlugin.Instrument]
-
   @spec new(keyword()) :: t()
   def new(opts \\ []) do
-    plugins = Keyword.get(opts, :plugins, @default_plugins)
+    plugins = Keyword.get(opts, :plugins, [])
 
     %__MODULE__{
       plugins: plugins,
-      scopes: collect_scopes(plugins, opts),
       orchid_baggage: opts |> Keyword.get(:orchid_baggage, []) |> Enum.into(%{}),
       orchid_opts: Keyword.get(opts, :orchid_opts, []),
       concurrency: Keyword.get(opts, :concurrency, System.schedulers_online()),
@@ -54,17 +49,15 @@ defmodule Quincunx.Renderer.Configuration do
   Each plugin may rewrite the recipe or append to run_opts.
   """
   @spec apply_plugins(t(), Orchid.Plugin.orchid_tuple()) :: Orchid.Plugin.orchid_tuple()
-  def apply_plugins(%__MODULE__{plugins: plugins, scopes: scopes}, orchid_tuple) do
+  def apply_plugins(%__MODULE__{plugins: plugins}, orchid_tuple) do
     Enum.reduce(plugins, orchid_tuple, fn plugin, acc ->
-      plugin.apply_plugin(acc, scopes)
-    end)
-  end
+      case plugin do
+        {plugin_module, context} when is_atom(plugin_module) ->
+          plugin_module.apply_plugin(acc, context)
 
-  # Automatically collects each plugin's scope_name from opts.
-  defp collect_scopes(plugins, opts) do
-    for plugin <- plugins, into: %{} do
-      key = plugin.scope_name()
-      {key, Keyword.get(opts, key)}
-    end
+        plugin_module when is_atom(plugin_module) ->
+          plugin_module.apply_plugin(acc, nil)
+      end
+    end)
   end
 end
