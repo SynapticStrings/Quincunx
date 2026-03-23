@@ -2,15 +2,17 @@ defmodule Quincunx.Session.InstanceSupervisor do
   use Supervisor
 
   def start_link(session_id, opts) do
-    name = Module.concat([session_id, Supervisor])
+    name = {:via, Registry, {Quincunx.SessionRegistry, {session_id, :instance_sup}}}
+
     Supervisor.start_link(__MODULE__, {session_id, opts}, name: name)
   end
 
   @impl true
   def init({session_id, opts}) do
     children = [
+      # TODO: Update OrchidSymbiont's version
       {Orchid.Symbiont.Runtime, session_id: session_id},
-      {Task.Supervisor, name: Module.concat([session_id, RenderTaskSupervisor])},
+      {Task.Supervisor, name: {:via, Registry, {Quincunx.SessionRegistry, {session_id, :task_sup}}}},
       {Quincunx.Session.Server, Keyword.put(opts, :session_id, session_id)}
     ]
 

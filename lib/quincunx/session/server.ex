@@ -28,6 +28,12 @@ defmodule Quincunx.Session.Server do
     ]
   end
 
+  def start_link(opts) do
+    session_id = Keyword.fetch!(opts, :session_id)
+    name = {:via, Registry, {Quincunx.SessionRegistry, session_id}}
+    GenServer.start_link(__MODULE__, opts, name: name)
+  end
+
   @impl true
   def init(opts) do
     session_id = Keyword.fetch!(opts, :session_id)
@@ -64,15 +70,18 @@ defmodule Quincunx.Session.Server do
       {new_state, {:ok, plan}} ->
         if state.render_tasks do
           Task.Supervisor.terminate_child(
-            Quincunx.RenderTaskSupervisor,
+            {:via, Registry, {Quincunx.SessionRegistry, {state.session_id, :task_sup}}},
             new_state.render_tasks.pid
           )
         end
 
         task =
-          Task.Supervisor.async_nolink(Quincunx.RenderTaskSupervisor, fn ->
-            Dispatcher.dispatch(plan, new_state.blackboard, dispatch_opts)
-          end)
+          Task.Supervisor.async_nolink(
+            {:via, Registry, {Quincunx.SessionRegistry, {state.session_id, :task_sup}}},
+            fn ->
+              Dispatcher.dispatch(plan, new_state.blackboard, dispatch_opts)
+            end
+          )
 
         {:noreply, %{new_state | render_tasks: task}}
 
