@@ -81,6 +81,39 @@ defmodule Quincunx.Session.Server do
     end
   end
 
+  # @impl true
+  # def handle_cast({:dispatch, dispatch_opts}, %State{} = state) do
+  #   with {:ok, plan} <- compile_and_plan(state) do
+  #     if state.rendering_task do
+  #       Task.Supervisor.terminate_child(state.task_sup, state.rendering_task.pid)
+  #     end
+
+  #     task =
+  #       Task.Supervisor.async(state.task_sup, fn ->
+  #         Quincunx.Renderer.Dispatcher.dispatch(plan, state.blackboard, dispatch_opts)
+  #       end)
+
+  #     {:noreply, %{state | rendering_task: task}}
+  #   else
+  #     {:error, _} = _err ->
+  #       {:noreply, state}
+  #   end
+  # end
+
+  # defp compile_and_plan(%State{} = state) do
+  #   compiled =
+  #     Enum.map(state.segments, fn {seg_id, segment} ->
+  #       compile_segment(seg_id, segment, state.static_bundles_cache)
+  #     end)
+
+  #   new_cache = Map.new(compiled, fn {id, _, static} -> {id, static} end)
+  #   state = %{state | static_bundles_cache: new_cache}
+
+  #   executable_pairs = Enum.map(compiled, fn {id, bundles, _} -> {id, bundles} end)
+
+  #   Planner.build(executable_pairs)
+  # end
+
   defp compile_segment(seg_id, segment, cache) do
     resolved = Resolver.resolve(segment.history, segment.graph)
 

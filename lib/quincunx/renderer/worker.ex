@@ -3,17 +3,17 @@ defmodule Quincunx.Renderer.Worker do
   Executes a single RecipeBundle in isolation.
 
   Resolves dependencies from the Blackboard, applies the plugin pipeline
-  via Context, then delegates to `Orchid.run/3`.
+  via Configuration, then delegates to `Orchid.run/3`.
   """
 
   alias Quincunx.Topology.Graph.PortRef
   alias Quincunx.Editor.Segment
   alias Quincunx.Compiler.RecipeBundle
-  alias Quincunx.Renderer.{Blackboard, Context}
+  alias Quincunx.Renderer.{Blackboard, Configuration}
 
-  @spec run(Segment.id(), RecipeBundle.t(), Blackboard.t(), Context.t()) ::
+  @spec run(Segment.id(), RecipeBundle.t(), Blackboard.t(), Configuration.t()) ::
           {:ok, Segment.id(), map()} | {:error, term()}
-  def run(seg_id, %RecipeBundle{} = bundle, %Blackboard{} = blackboard, %Context{} = ctx) do
+  def run(seg_id, %RecipeBundle{} = bundle, %Blackboard{} = blackboard, %Configuration{} = ctx) do
     dynamic_inputs = resolve_dependencies(seg_id, bundle, blackboard)
 
     baggage =
@@ -22,7 +22,7 @@ defmodule Quincunx.Renderer.Worker do
 
     base_opts = Keyword.merge(ctx.orchid_opts, baggage: baggage)
 
-    {recipe, final_opts} = Context.apply_plugins(ctx, {bundle.recipe, base_opts})
+    {recipe, final_opts} = Configuration.apply_plugins(ctx, {bundle.recipe, base_opts})
 
     case Orchid.run(recipe, dynamic_inputs, final_opts) do
       {:ok, results} -> {:ok, seg_id, results}

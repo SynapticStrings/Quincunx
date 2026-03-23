@@ -1,4 +1,4 @@
-defmodule Quincunx.Renderer.Context do
+defmodule Quincunx.Renderer.Configuration do
   @moduledoc """
   Immutable render-pass configuration.
 

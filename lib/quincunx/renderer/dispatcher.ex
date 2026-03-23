@@ -4,15 +4,15 @@ defmodule Quincunx.Renderer.Dispatcher do
 
   Sole responsibility: fan-out tasks per stage, collect results,
   enforce barrier before next stage.  All configuration is carried
-  by `Renderer.Context`.
+  by `Renderer.Configuration`.
   """
 
-  alias Quincunx.Renderer.{Planner, Worker, Blackboard, Context}
+  alias Quincunx.Renderer.{Planner, Worker, Blackboard, Configuration}
 
   @spec dispatch(Planner.Plan.t(), Blackboard.t(), keyword()) ::
           {:ok, Blackboard.t()} | {:error, term()}
   def dispatch(%Planner.Plan{} = plan, %Blackboard{} = board, opts \\ []) do
-    ctx = Context.new(opts)
+    ctx = Configuration.new(opts)
 
     Enum.reduce_while(plan.stages, {:ok, board}, fn stage, {:ok, current_board} ->
       case run_stage(stage, current_board, ctx) do
@@ -22,7 +22,7 @@ defmodule Quincunx.Renderer.Dispatcher do
     end)
   end
 
-  defp run_stage(stage, blackboard, %Context{} = ctx) do
+  defp run_stage(stage, blackboard, %Configuration{} = ctx) do
     stage.tasks
     |> Task.async_stream(
       fn {seg_id, bundle} -> Worker.run(seg_id, bundle, blackboard, ctx) end,
