@@ -15,7 +15,6 @@ defmodule Quincunx.Renderer.Context do
     * `:concurrency`    – max parallel workers per stage
     * `:timeout`        – per-worker timeout
     * any key matching a plugin's `scope_name/0` is collected automatically
-
   """
 
   @type t :: %__MODULE__{

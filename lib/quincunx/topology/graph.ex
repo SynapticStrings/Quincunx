@@ -70,7 +70,6 @@ defmodule Quincunx.Topology.Graph do
         }
   defstruct [:nodes, :edges]
 
-  @spec new() :: t()
   def new,
     do: %__MODULE__{
       nodes: %{},
@@ -78,15 +77,12 @@ defmodule Quincunx.Topology.Graph do
     }
 
   # https://elixirforum.com/t/what-is-a-good-way-to-compare-structs/59303
-  @spec same?(t(), t()) :: boolean()
   def same?(graph1, graph2), do: graph1 == graph2
 
-  @spec add_node(t(), Node.t()) :: t()
   def add_node(%__MODULE__{nodes: old_nodes} = graph, %Node{id: node_id} = node) do
     %{graph | nodes: Map.put(old_nodes, node_id, node)}
   end
 
-  @spec remove_node(t(), Node.id()) :: t()
   def remove_node(%__MODULE__{nodes: nodes, edges: edges}, node_id) do
     case nodes[node_id] do
       nil ->
@@ -103,7 +99,6 @@ defmodule Quincunx.Topology.Graph do
     end
   end
 
-  @spec update_node(t(), Node.id(), new_node :: Node.t()) :: t()
   def update_node(%__MODULE__{nodes: nodes} = graph, node_id, new_node) do
     case nodes[node_id] do
       nil ->
@@ -124,12 +119,10 @@ defmodule Quincunx.Topology.Graph do
     end
   end
 
-  @spec add_edge(t(), Edge.t()) :: t()
   def add_edge(%__MODULE__{} = graph, edge) do
     %{graph | edges: MapSet.put(graph.edges, edge)}
   end
 
-  @spec remove_edge(t(), Edge.t()) :: t()
   def remove_edge(%__MODULE__{edges: edges} = graph, edge) do
     %{graph | edges: MapSet.delete(edges, edge)}
   end

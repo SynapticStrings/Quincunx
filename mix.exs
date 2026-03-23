@@ -8,7 +8,10 @@ defmodule Quincunx.MixProject do
       elixir: "~> 1.18",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      dialyzer: [
+        flags: [:no_opaque]
+      ]
     ]
   end
 
