@@ -10,8 +10,10 @@ defmodule Quincunx.Topology.GraphTest do
       node_2 = %Node{id: :node_2, impl: DummyStep1, inputs: [:in], outputs: [:out]}
 
       assert node_1 != node_2
-      assert Orchid.Param.get_payload(node_1.impl.run(Orchid.Param.new(:node_1_in, :binary, "NodeIn"))) ==
-        Orchid.Param.get_payload(node_2.impl.run(Orchid.Param.new(:node_2_in, :binary, "NodeIn")))
+      {:ok, res1} = node_1.impl.run(%Orchid.Param{payload: "NodeIn"}, [])
+      {:ok, res2} = node_2.impl.run(%Orchid.Param{payload: "NodeIn"}, [])
+
+      assert Orchid.Param.get_payload(res1) == Orchid.Param.get_payload(res2)
     end
 
     # test "Edge.new/4"

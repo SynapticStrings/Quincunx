@@ -66,12 +66,16 @@ defmodule Quincunx.Topology.Graph do
   # in/out edge => %{Node.id() => [Edge.t()]}
   @type t :: %__MODULE__{
           nodes: %{Node.id() => Node.t()},
-          edges: MapSet.t(Edge.t()) | MapSet.t()
+          edges: MapSet.t(Edge.t())
         }
+  defstruct [:nodes, :edges]
 
-  defstruct nodes: %{}, edges: MapSet.new()
-
-  def new, do: %__MODULE__{}
+  @spec new() :: t()
+  def new,
+    do: %__MODULE__{
+      nodes: %{},
+      edges: MapSet.new()
+    }
 
   # https://elixirforum.com/t/what-is-a-good-way-to-compare-structs/59303
   @spec same?(t(), t()) :: boolean()
