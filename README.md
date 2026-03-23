@@ -136,4 +136,3 @@ Quincunx manages heterogeneous routing via **Cluster (Color Painting)**. Modifyi
 1. **Planner (Pure Functional)**: Resolves segment histories, compiles them, and outputs a deterministic plan grouped by `Stage`s.
 2. **Dispatcher (OTP Coordinator)**: An asynchronous state machine that executes tasks stage by stage, maintaining barrier-synchronization.
 3. **Worker (Stateless Runner)**: Wraps `Orchid.run/3`, resolves dependencies from the `Blackboard`, and applies cache bypassing.
-</details>
