@@ -76,17 +76,16 @@ defmodule Quincunx.Compiler.GraphBuilder do
   end
 
   defp get_dangling_port(current_node_id, graph, direction) do
-    group_func = if direction == :outputs, do: & &1.from_node, else: & &1.to_node
-
     node = graph.nodes[current_node_id]
+
+    ports = if direction == :outputs, do: node.outputs, else: node.inputs
+    match_field = if direction == :outputs, do: :from_port, else: :to_port
+    group_func = if direction == :outputs, do: & &1.from_node, else: & &1.to_node
 
     edges =
       graph.edges
       |> Enum.group_by(group_func)
       |> Map.get(current_node_id, [])
-
-    ports = if direction == :outputs, do: node.outputs, else: node.inputs
-    match_field = if direction == :outputs, do: :from_port, else: :to_port
 
     ports
     |> Enum.reject(fn port -> Enum.any?(edges, &(Map.get(&1, match_field) == port)) end)

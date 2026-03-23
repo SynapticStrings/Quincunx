@@ -29,7 +29,8 @@ defmodule Quincunx.Renderer.Planner do
     end
   end
 
-  @spec build([Segment.t()] | [{Segment.id(), [RecipeBundle.t()]}]) :: {:error, any()} | {:ok, Plan.t()}
+  @spec build([Segment.t()] | [{Segment.id(), [RecipeBundle.t()]}]) ::
+          {:error, any()} | {:ok, Plan.t()}
   def build(segments_or_compiled_pairs)
 
   def build([%Segment{} | _] = segments) do

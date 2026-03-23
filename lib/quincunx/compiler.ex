@@ -14,7 +14,9 @@ defmodule Quincunx.Compiler do
   def compile_to_recipes(segments) when is_list(segments) do
     resolved_items =
       Enum.map(segments, fn seg ->
-        %{graph: effective_graph, interventions: interventions} = History.Resolver.resolve(seg.history, seg.graph)
+        %{graph: effective_graph, interventions: interventions} =
+          History.Resolver.resolve(seg.history, seg.graph)
+
         %{segment: seg, graph: effective_graph, interventions: interventions}
       end)
 

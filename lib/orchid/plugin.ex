@@ -5,5 +5,6 @@ defmodule Orchid.Plugin do
 
   @callback scope_name() :: context_name()
 
-  @callback apply_plugin(orchid_tuple(), %{context_name() => plugin_context :: term()}) :: orchid_tuple()
+  @callback apply_plugin(orchid_tuple(), %{context_name() => plugin_context :: term()}) ::
+              orchid_tuple()
 end
