@@ -58,26 +58,26 @@ defmodule Quincunx.Session.Server do
 
   @impl true
   def handle_call({:dispatch, dispatch_opts}, _from, %State{} = state) do
-    final_bundles =
+    compiled =
       Enum.map(state.segments, fn {seg_id, segment} ->
         compile_segment(seg_id, segment, state.static_bundles_cache)
       end)
 
-    new_cache = final_bundles |> Enum.map(fn {id, _, static} -> {id, static} end) |> Map.new()
+    new_cache = Map.new(compiled, fn {id, _, static} -> {id, static} end)
     state = %{state | static_bundles_cache: new_cache}
 
-    executable_pairs = final_bundles |> Enum.map(fn {id, bundles, _} -> {id, bundles} end)
+    executable_pairs = Enum.map(compiled, fn {id, bundles, _} -> {id, bundles} end)
 
-    executable_pairs
-    |> Planner.build()
-    |> case do
-      {:ok, plans} ->
-        new_black_board = Dispatcher.dispatch(plans, state.blackboard, dispatch_opts)
+    # Inject session-owned storage into plugin scope using its canonical key
+    full_opts =
+      dispatch_opts
+      |> Keyword.put(OrchidPlugin.Cache.scope_name(), state.storage)
 
-        {:reply, :ok, %{state | blackboard: new_black_board}}
-
-      err ->
-        {:reply, {:error, err}, state}
+    with {:ok, plan} <- Planner.build(executable_pairs),
+         {:ok, new_board} <- Dispatcher.dispatch(plan, state.blackboard, full_opts) do
+      {:reply, :ok, %{state | blackboard: new_board}}
+    else
+      {:error, _} = err -> {:reply, err, state}
     end
   end
 

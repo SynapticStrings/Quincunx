@@ -1,72 +1,36 @@
 defmodule Quincunx.Renderer.Dispatcher do
   @moduledoc """
-  Orchestrates the barrier-synchronized execution of stages.
+  Orchestrates barrier-synchronized execution of stages.
+
+  Sole responsibility: fan-out tasks per stage, collect results,
+  enforce barrier before next stage.  All configuration is carried
+  by `Renderer.Context`.
   """
-  alias Quincunx.Renderer.{Planner, Worker, Blackboard}
 
-  @doc """
-  Runs the execution plan synchronously, applying barrier locks between stages.
-  """
-  def dispatch(%Planner.Plan{} = plan, %Blackboard{} = initial_board, opts \\ []) do
-    concurrency = Keyword.get(opts, :concurrency, System.schedulers_online())
-    timeout = Keyword.get(opts, :timeout, :infinity)
+  alias Quincunx.Renderer.{Planner, Worker, Blackboard, Context}
 
-    orchid_baggage = Keyword.get(opts, :orchid_baggage, [])
+  @spec dispatch(Planner.Plan.t(), Blackboard.t(), keyword()) ::
+          {:ok, Blackboard.t()} | {:error, term()}
+  def dispatch(%Planner.Plan{} = plan, %Blackboard{} = board, opts \\ []) do
+    ctx = Context.new(opts)
 
-    features = get_features(opts)
-
-    Enum.reduce_while(plan.stages, {:ok, initial_board}, fn stage, {:ok, current_board} ->
-      case run_stage(
-             stage,
-             current_board,
-             concurrency,
-             timeout,
-             features,
-             orchid_baggage,
-             []
-           ) do
-        {:ok, updated_board} ->
-          {:cont, {:ok, updated_board}}
-
-        {:error, reason} ->
-          {:halt, {:error, reason}}
+    Enum.reduce_while(plan.stages, {:ok, board}, fn stage, {:ok, current_board} ->
+      case run_stage(stage, current_board, ctx) do
+        {:ok, updated_board} -> {:cont, {:ok, updated_board}}
+        {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
   end
 
-  def get_features(opts) do
-    # Storage
-    storage_key = OrchidPlugin.Cache.scope_name()
-    storage_ctx = Keyword.get(opts, :storage)
-
-    # Instrument
-
-    # Interventions
-
-    %{storage_key => storage_ctx}
-  end
-
-  defp run_stage(
-         stage,
-         blackboard,
-         concurrency,
-         timeout,
-         features,
-         orchid_baggage,
-         orchid_opts
-       ) do
-    stream =
-      Task.async_stream(
-        stage.tasks,
-        fn {seg_id, bundle} ->
-          Worker.run(seg_id, bundle, blackboard, features, orchid_baggage, orchid_opts)
-        end,
-        max_concurrency: concurrency,
-        timeout: timeout,
-        ordered: false
-      )
-
-    Enum.reduce_while(stream, {:ok, blackboard}, fn
+  defp run_stage(stage, blackboard, %Context{} = ctx) do
+    stage.tasks
+    |> Task.async_stream(
+      fn {seg_id, bundle} -> Worker.run(seg_id, bundle, blackboard, ctx) end,
+      max_concurrency: ctx.concurrency,
+      timeout: ctx.timeout,
+      ordered: false
+    )
+    |> Enum.reduce_while({:ok, blackboard}, fn
       {:ok, {:ok, seg_id, outputs}}, {:ok, acc_board} ->
         {:cont, {:ok, merge_results(acc_board, seg_id, outputs)}}
 
@@ -79,15 +43,15 @@ defmodule Quincunx.Renderer.Dispatcher do
   end
 
   defp merge_results(%Blackboard{} = board, seg_id, outputs) do
-    new_memory_entries =
+    entries =
       outputs
       |> Enum.map(fn
-        %Orchid.Param{} = param -> {{seg_id, param.name}, Orchid.Param.get_payload(param)}
-        {port_name, param} -> {{seg_id, port_name}, Orchid.Param.get_payload(param)}
+        %Orchid.Param{} = p -> {{seg_id, p.name}, Orchid.Param.get_payload(p)}
+        {port_name, p} -> {{seg_id, port_name}, Orchid.Param.get_payload(p)}
       end)
-      |> Enum.reject(fn {_key, value} -> is_nil(value) end)
-      |> Enum.into(%{})
+      |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+      |> Map.new()
 
-    Blackboard.put(board, new_memory_entries)
+    Blackboard.put(board, entries)
   end
 end

@@ -7,8 +7,13 @@ defmodule OrchidPlugin.Instrument do
   def scope_name, do: :instruments
 
   @impl true
-  def apply_plugin({orchid_recipe, opts}, %{instruments: symbionts_mapper}) do
+  def apply_plugin({orchid_recipe, opts}, %{instruments: symbionts_mapper})
+      when not is_nil(symbionts_mapper) do
     {orchid_recipe, add_options(opts, symbionts_mapper)}
+  end
+
+  def apply_plugin({orchid_recipe, opts}, _nil) do
+    {orchid_recipe, opts}
   end
 
   defp add_options(old_orchid_opts, symbiont_mapper) do
