@@ -24,19 +24,14 @@ defmodule Quincunx.Renderer.Worker do
         seg_id,
         %RecipeBundle{} = bundle,
         blackboard,
-        feaures,
+        features,
         orchid_custom_baggage,
         orchid_opts
       ) do
-    dynamic_inputs = resolve_dependencies(seg_id, bundle, blackboard)
+    orchid_run_opts =
+      build_orchid_opts(seg_id, bundle, blackboard, features, orchid_custom_baggage, orchid_opts)
 
-    # TODO: merge static interventions
-    # required Hook
-
-    {recipe_to_run, final_run_opts} =
-      apply_recipe_and_opts(seg_id, bundle, orchid_custom_baggage, orchid_opts, feaures)
-
-    case Orchid.run(recipe_to_run, dynamic_inputs, final_run_opts) do
+    case apply(Orchid, :run, orchid_run_opts) do
       {:ok, results} ->
         {:ok, seg_id, results}
 
@@ -45,7 +40,16 @@ defmodule Quincunx.Renderer.Worker do
     end
   end
 
-  defp apply_recipe_and_opts(seg_id, bundle, orchid_custom_baggage, orchid_opts, features) do
+  defp build_orchid_opts(
+         seg_id,
+         %RecipeBundle{} = bundle,
+         blackboard,
+         features,
+         orchid_custom_baggage,
+         orchid_opts
+       ) do
+    dynamic_inputs = resolve_dependencies(seg_id, bundle, blackboard)
+
     base_baggage =
       Enum.into(orchid_custom_baggage, %{})
       |> Map.put(:segments_id, seg_id)
@@ -56,21 +60,23 @@ defmodule Quincunx.Renderer.Worker do
         features
       )
 
-    # TODO: Add hook here
-
-    {recipe_to_run, final_run_opts}
+    [recipe_to_run, dynamic_inputs, final_run_opts]
   end
 
-  defp resolve_dependencies(seg_id, %RecipeBundle{} = bundle, %Blackboard{} = blackboard) do
+  defp resolve_dependencies(
+         seg_id,
+         %RecipeBundle{requires: requires, interventions: interventions},
+         %Blackboard{memory: blackboard}
+       ) do
     # Orchid accepts a bare list and can resolve via `param.name`
     # See Orchid.Scheduler.build/3
-    Enum.map(bundle.requires, fn orchid_key ->
+    Enum.map(requires, fn orchid_key ->
       cond do
-        Map.has_key?(blackboard.memory, {seg_id, orchid_key}) ->
-          Map.fetch!(blackboard.memory, {seg_id, orchid_key})
+        Map.has_key?(blackboard, {seg_id, orchid_key}) ->
+          Map.fetch!(blackboard, {seg_id, orchid_key})
 
         port_data =
-            Map.new(bundle.interventions, fn {k, v} -> {PortRef.to_orchid_key(k), v} end)
+            Map.new(interventions, fn {k, v} -> {PortRef.to_orchid_key(k), v} end)
             |> Map.get(orchid_key) ->
           case Map.get(port_data, :input) do
             %Orchid.Param{} = param -> %{param | name: orchid_key}
