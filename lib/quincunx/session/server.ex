@@ -5,8 +5,10 @@ defmodule Quincunx.Session.Server do
   use GenServer
 
   require Logger
-  alias Quincunx.Editor.{Segment, History.Resolver, History.Operation}
+
   alias Quincunx.Session.Storage
+  alias Quincunx.SessionRegistry
+  alias Quincunx.Editor.{Segment, History.Resolver, History.Operation}
   alias Quincunx.Renderer.{Blackboard, Planner, Dispatcher}
   alias Quincunx.Compiler.{GraphBuilder, RecipeBundle}
 
@@ -31,7 +33,7 @@ defmodule Quincunx.Session.Server do
 
   def start_link(opts) do
     session_id = Keyword.fetch!(opts, :session_id)
-    name = {:via, Registry, {Quincunx.SessionRegistry, {session_id, :server}}}
+    name = Quincunx.SessionRegistry.via(session_id, :server)
     GenServer.start_link(__MODULE__, opts, name: name)
   end
 
@@ -90,14 +92,14 @@ defmodule Quincunx.Session.Server do
       {new_state, {:ok, plan}} ->
         if state.render_tasks do
           Task.Supervisor.terminate_child(
-            {:via, Registry, {Quincunx.SessionRegistry, {state.session_id, :task_sup}}},
+            Quincunx.SessionRegistry.via(state.session_id, :task_sup),
             new_state.render_tasks.pid
           )
         end
 
         task =
           Task.Supervisor.async_nolink(
-            {:via, Registry, {Quincunx.SessionRegistry, {state.session_id, :task_sup}}},
+            Quincunx.SessionRegistry.via(state.session_id, :task_sup),
             fn ->
               Dispatcher.dispatch(plan, new_state.blackboard, dispatch_opts)
             end
