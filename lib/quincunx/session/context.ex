@@ -41,13 +41,20 @@ defmodule Quincunx.Session.Context do
     end
   end
 
-  # remove_segment
+  @spec remove_segment(t(), Segment.id()) :: t()
+  def remove_segment(%__MODULE__{} = ctx, seg_id) do
+    %{
+      ctx
+      | segments: Map.delete(ctx.segments, seg_id),
+        static_bundles_cache: Map.delete(ctx.static_bundles_cache, seg_id)
+    }
+  end
 
   # push_segment
 
   # pop_segment
 
-  @spec operate(t(), Segment.id(), History.Operation.t()) :: {:seg_not_exist, any()} | t()
+  @spec operate(t(), Segment.id(), History.Operation.t()) :: {:seg_not_exist, Segment.id()} | t()
   def operate(%__MODULE__{} = ctx, seg_id, op) do
     case Map.fetch(ctx.segments, seg_id) do
       {:ok, %Segment{} = seg} ->
@@ -66,6 +73,7 @@ defmodule Quincunx.Session.Context do
     end
   end
 
+  @spec undo(t(), Segment.id()) :: {:seg_not_exist, Segment.id()} | t()
   def undo(%__MODULE__{} = ctx, seg_id) do
     case Map.fetch(ctx.segments, seg_id) do
       {:ok, %Segment{} = seg} ->
@@ -80,6 +88,7 @@ defmodule Quincunx.Session.Context do
     end
   end
 
+  @spec redo(t(), Segment.id()) :: {:seg_not_exist, Segment.id()} | t()
   def redo(%__MODULE__{} = ctx, seg_id) do
     case Map.fetch(ctx.segments, seg_id) do
       {:ok, %Segment{} = seg} ->
@@ -94,29 +103,36 @@ defmodule Quincunx.Session.Context do
     end
   end
 
-  @spec dispatch_to_plans(t()) :: {t(), Planner.Plan.t()}
+  @spec dispatch_to_plans(t()) :: {t(), Planner.Plan.t() | {:error, term()}}
   def dispatch_to_plans(%__MODULE__{} = ctx) do
     # {seg_id, derive, cached_static_or_compiled, recipe_bundle}
-    # TODO: Use Enum.reduce_while instead.
-    compiled = Enum.map(ctx.segments, fn seg -> compile_segment(seg, ctx.static_bundles_cache) end)
+    compiled_results =
+      Enum.map(ctx.segments, fn seg -> compile_segment(seg, ctx.static_bundles_cache) end)
 
-    # Build Planner from recipe bundle always return `{:ok, plan}`
-    {:ok, plan} =
-      compiled
-      |> Enum.map(fn {id, _, _, bundle} -> {id, bundle} end)
-      |> Planner.build()
+    case Enum.find(compiled_results, &match?({:error, _}, &1)) do
+      {:error, _} = error ->
+        {ctx, error}
 
-    new_ctx = %{
-      ctx
-      | static_bundles_cache: Map.new(compiled, fn {id, _, static, _} -> {id, static} end)
-    }
+      _ ->
+        # Build Planner from recipe bundle always return `{:ok, plan}`
+        {:ok, plan} =
+          compiled_results
+          |> Enum.map(fn {id, _, _, bundle} -> {id, bundle} end)
+          |> Planner.build()
 
-    {new_ctx, plan}
+        new_ctx = %{
+          ctx
+          | static_bundles_cache:
+              Map.new(compiled_results, fn {id, _, static, _} -> {id, static} end)
+        }
+
+        {new_ctx, plan}
+    end
   end
 
-  def execute_plans(%__MODULE__{} = _ctx, _plan) do
-    # ...
-  end
+  # def execute_plans(%__MODULE__{} = _ctx, _plan) do
+  #   # ...
+  # end
 
   @spec compile_segment({Segment.id(), Segment.t()}, static_bundles_cache()) ::
           {:error, :cycle_detected}
