@@ -1,6 +1,5 @@
 defmodule Quincunx.Renderer.Blackboard do
   alias Quincunx.Editor.Segment
-  alias Quincunx.Session.Storage
 
   @type session_id :: term()
   @type addr :: {Segment.id(), Orchid.Step.io_key()}
@@ -8,13 +7,12 @@ defmodule Quincunx.Renderer.Blackboard do
   @type t :: %__MODULE__{
           session_id: session_id(),
           memory: %{addr() => Orchid.Param.t() | any()},
-          cache_ref: nil | Storage.t()
         }
 
-  defstruct [:session_id, memory: %{}, cache_ref: nil]
+  defstruct [:session_id, memory: %{}]
 
-  @spec new(session_id(), cache_ref :: nil | Storage.t()) :: t()
-  def new(session_id, cache_ref), do: %__MODULE__{session_id: session_id, memory: %{}, cache_ref: cache_ref}
+  @spec new(session_id()) :: t()
+  def new(session_id), do: %__MODULE__{session_id: session_id, memory: %{}}
 
   @spec put(t(), %{addr() => Orchid.Param.t()}) :: t()
   def put(%__MODULE__{} = board, new_data) when is_map(new_data) do

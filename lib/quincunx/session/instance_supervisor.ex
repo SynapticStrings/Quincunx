@@ -1,18 +1,16 @@
 defmodule Quincunx.Session.InstanceSupervisor do
   use Supervisor
-  alias Quincunx.SessionRegistry
+  alias Quincunx.Session
 
   def start_link(session_id, opts) do
-    name = SessionRegistry.via(session_id, :instance_sup)
-
-    Supervisor.start_link(__MODULE__, {session_id, opts}, name: name)
+    Supervisor.start_link(__MODULE__, {session_id, opts}, name: Session.instance_sup(session_id))
   end
 
   @impl true
   def init({session_id, opts}) do
     children = [
       {OrchidSymbiont.Runtime, session_id: session_id},
-      {Task.Supervisor, name: SessionRegistry.via(session_id, :task_sup)},
+      {Task.Supervisor, name: Session.task_sup(session_id)},
       {Quincunx.Session.Server, Keyword.put(opts, :session_id, session_id)}
     ]
 
