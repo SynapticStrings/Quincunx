@@ -9,7 +9,7 @@ defmodule Quincunx.SessionRegistry do
   end
 
   @doc "Build a vi tuple."
-  def via(sesion_id, role \\ nil), do: {:via, Registry, {__MODULE__, key(session_id, role)}}
+  def via(session_id, role \\ nil), do: {:via, Registry, {__MODULE__, key(session_id, role)}}
 
   defp key(session_id, nil), do: session_id
   defp key(session_id, role), do: {session_id, role}
