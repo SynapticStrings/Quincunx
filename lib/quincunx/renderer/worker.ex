@@ -14,11 +14,13 @@ defmodule Quincunx.Renderer.Worker do
   @spec run(Segment.id(), RecipeBundle.t(), Blackboard.t(), Configurator.t()) ::
           {:ok, Segment.id(), map()} | {:error, term()}
   def run(seg_id, %RecipeBundle{} = bundle, %Blackboard{} = blackboard, %Configurator{} = ctx) do
-    dynamic_inputs = resolve_dependencies(seg_id, bundle, blackboard)
+    intervention_by_orchid_key = get_intervention_via_orchid(bundle.interventions)
+
+    dynamic_inputs = resolve_dependencies(seg_id, bundle, blackboard, intervention_by_orchid_key)
 
     baggage =
       ctx.orchid_baggage
-      |> Map.put(:segments_id, seg_id)
+      |> Map.merge(%{segments_id: seg_id, interventions: intervention_by_orchid_key})
 
     base_opts = Keyword.merge(ctx.orchid_opts, baggage: baggage)
 
@@ -30,11 +32,13 @@ defmodule Quincunx.Renderer.Worker do
     end
   end
 
-  defp resolve_dependencies(seg_id, %RecipeBundle{} = bundle, %Blackboard{memory: mem}) do
-    intervention_by_orchid_key =
-      Map.new(bundle.interventions, fn {k, v} -> {PortRef.to_orchid_key(k), v} end)
-
-    Enum.map(bundle.requires, fn orchid_key ->
+  defp resolve_dependencies(
+         seg_id,
+         %RecipeBundle{requires: requires},
+         %Blackboard{memory: mem},
+         intervention_by_orchid_key
+       ) do
+    Enum.map(requires, fn orchid_key ->
       case Map.fetch(mem, {seg_id, orchid_key}) do
         {:ok, val} ->
           Orchid.Param.new(orchid_key, :any, val)
@@ -43,6 +47,10 @@ defmodule Quincunx.Renderer.Worker do
           resolve_from_intervention(orchid_key, intervention_by_orchid_key)
       end
     end)
+  end
+
+  def get_intervention_via_orchid(interventions) do
+    Map.new(interventions, fn {k, v} -> {PortRef.to_orchid_key(k), v} end)
   end
 
   defp resolve_from_intervention(orchid_key, interventions) do
