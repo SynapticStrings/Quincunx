@@ -8,7 +8,7 @@ defmodule Quincunx.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      {Registry, keys: :unique, name: Quincunx.SessionRegistry},
+      Quincunx.SessionRegistry,
       {Task.Supervisor, name: Quincunx.RenderTaskSupervisor},
       {DynamicSupervisor, name: Quincunx.SessionSupervisor, strategy: :one_for_one}
     ]
