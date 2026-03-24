@@ -4,6 +4,7 @@ defmodule Quincunx.Session.Server do
   """
   use GenServer
 
+  require Logger
   alias Quincunx.Editor.{Segment, History.Resolver, History.Operation}
   alias Quincunx.Session.Storage
   alias Quincunx.Renderer.{Blackboard, Planner, Dispatcher}
@@ -30,7 +31,7 @@ defmodule Quincunx.Session.Server do
 
   def start_link(opts) do
     session_id = Keyword.fetch!(opts, :session_id)
-    name = {:via, Registry, {Quincunx.SessionRegistry, session_id}}
+    name = {:via, Registry, {Quincunx.SessionRegistry, {session_id, :server}}}
     GenServer.start_link(__MODULE__, opts, name: name)
   end
 
@@ -45,6 +46,25 @@ defmodule Quincunx.Session.Server do
        storage: storage,
        blackboard: Blackboard.new(session_id)
      }}
+  end
+
+  @impl true
+  def handle_cast({:add_segment, %Segment{} = segment}, %State{} = state) do
+    if Map.has_key?(state.segments, segment.id) do
+      {:noreply, state}
+    else
+      new_state = put_in(state.segments[segment.id], segment)
+      {:noreply, new_state}
+    end
+  end
+
+  @impl true
+  def handle_cast({:remove_segment, seg_id}, %State{} = state) do
+    new_state = %{state |
+      segments: Map.delete(state.segments, seg_id),
+      static_bundles_cache: Map.delete(state.static_bundles_cache, seg_id)
+    }
+    {:noreply, new_state}
   end
 
   @impl true
@@ -101,10 +121,17 @@ defmodule Quincunx.Session.Server do
   def handle_info({:DOWN, ref, :process, _pid, reason}, %State{render_tasks: %{ref: ref}} = state) do
     if reason != :killed do
       require Logger
-      Logger.error("渲染引擎崩溃了，但是用户的工程数据安全！原因: #{inspect(reason)}")
+      Logger.error("Engine crashed!\n\nReason: #{inspect(reason)}")
     end
 
     {:noreply, %{state | render_tasks: nil}}
+  end
+
+  @impl true
+  def handle_info(msg, state) do
+    Logger.warning("Cought unknown message:\n\n#{inspect(msg)}")
+
+    {:noreply, state}
   end
 
   defp compile_and_plan(%State{} = state) do
