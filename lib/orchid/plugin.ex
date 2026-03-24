@@ -1,7 +1,9 @@
 defmodule Orchid.Plugin do
-  @type orchid_tuple :: {Orchid.Recipe.t(), orchid_opts :: keyword()}
+  @moduledoc """
+  Responsible to integrate Orchid's custome Hooks/Operons into Quincunx renderer.
+  """
 
-  @type context_name :: atom()
+  @type orchid_tuple :: {Orchid.Recipe.t(), orchid_opts :: keyword()}
 
   @callback apply_plugin(orchid_tuple(), plugin_context :: term()) ::
               orchid_tuple()

@@ -1,4 +1,9 @@
 defmodule Quincunx.Compiler.GraphBuilder do
+  @moduledoc """
+  It is responsible for transforming `Orchid.Topology.Graph` into
+  the Orchid Recipe to be executed and its associated entities (`RecipeBundle`).
+  """
+
   alias Quincunx.Topology.{Graph, Graph.PortRef, Cluster}
   alias Quincunx.Compiler.RecipeBundle
 

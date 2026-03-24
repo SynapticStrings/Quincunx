@@ -1,4 +1,6 @@
 defmodule Quincunx.Session.InstanceSupervisor do
+  @moduledoc false
+
   use Supervisor
   alias Quincunx.Session
 

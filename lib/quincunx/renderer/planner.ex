@@ -1,12 +1,24 @@
 defmodule Quincunx.Renderer.Planner do
   @moduledoc """
-  Aligning `Quincunx.Segment`s into pipeline batch.
+  Aligns compiled `Segment` bundles into a barrier-synchronized execution pipeline.
+
+  Transforms the output of `Compiler.compile_to_recipes/1` into a `Plan` structure
+  where bundles sharing the same topological depth are grouped into `Stage`s.
+  Tasks within a stage run in parallel; stages execute sequentially.
   """
   alias Quincunx.Compiler
   alias Quincunx.Editor.Segment
   alias Quincunx.Compiler.RecipeBundle
 
   defmodule Stage do
+    @moduledoc """
+    A single execution barrier in the plan.
+
+    Contains all `RecipeBundle` tasks that share the same topological depth.
+    These tasks are independent and can be executed concurrently.
+    The next stage will only begin after all tasks in this stage complete.
+    """
+
     @type task_def :: {Segment.id(), RecipeBundle.t()}
     @type t :: %__MODULE__{
             index: non_neg_integer(),
@@ -16,6 +28,13 @@ defmodule Quincunx.Renderer.Planner do
   end
 
   defmodule Plan do
+    @moduledoc """
+    An ordered sequence of stages forming the complete execution strategy.
+
+    Acts as the input to `Dispatcher.dispatch/3`. The `total_tasks` field
+    provides a quick summary for progress tracking and logging.
+    """
+
     @type t :: %__MODULE__{
             stages: [Stage.t()],
             total_tasks: non_neg_integer()
@@ -23,7 +42,7 @@ defmodule Quincunx.Renderer.Planner do
     defstruct [:stages, total_tasks: 0]
 
     def new(stages) do
-      total_tasks = Enum.reduce(stages, 0, fn s, acc -> acc + length(s.tasks) end)
+      total_tasks = Enum.reduce(stages, 0, &(&2 + length(&1.tasks)))
 
       %__MODULE__{stages: stages, total_tasks: total_tasks}
     end

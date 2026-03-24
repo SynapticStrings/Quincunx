@@ -54,6 +54,8 @@ defmodule Quincunx.Topology.Graph do
   end
 
   defmodule PortRef do
+    @moduledoc "A container based on the node/port representation, used to dynamically generate Orchid keys."
+
     @type t :: {:port, node :: Node.id(), port :: atom()}
 
     @spec to_orchid_key(t()) :: Orchid.Step.io_key()

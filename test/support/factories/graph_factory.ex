@@ -1,4 +1,6 @@
 defmodule QuincunxTest.GraphFactory do
+  @moduledoc false
+
   alias Quincunx.Topology.{Graph, Graph.Node, Graph.Edge}
 
   def build_graph_v1 do

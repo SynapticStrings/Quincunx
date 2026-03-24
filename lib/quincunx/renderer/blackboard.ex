@@ -1,4 +1,12 @@
 defmodule Quincunx.Renderer.Blackboard do
+  @moduledoc """
+  Runtime memory view for incremental generation results.
+
+  Blackboard acts as the **read/write interface** between Workers and the
+  underlying `Quincunx.Storage.Behaviour` implementation. It holds computed
+  results (outputs) and user-provided inputs, keyed by segment address.
+  """
+
   alias Quincunx.Editor.Segment
 
   @type session_id :: term()
@@ -6,7 +14,7 @@ defmodule Quincunx.Renderer.Blackboard do
 
   @type t :: %__MODULE__{
           session_id: session_id(),
-          memory: %{addr() => Orchid.Param.t() | any()},
+          memory: %{addr() => Orchid.Param.t() | any()}
         }
 
   defstruct [:session_id, memory: %{}]

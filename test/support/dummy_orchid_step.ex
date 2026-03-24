@@ -1,5 +1,9 @@
 defmodule QuincunxTest.DummyOrchidStep do
+  @moduledoc false
+  # Used for test
+
   defmodule DummyStep1 do
+    @moduledoc false
     use Orchid.Step
 
     def run(%Orchid.Param{payload: inputs}, _step_options) do
@@ -8,6 +12,7 @@ defmodule QuincunxTest.DummyOrchidStep do
   end
 
   defmodule DummyStep2 do
+    @moduledoc false
     use Orchid.Step
 
     def run(%Orchid.Param{payload: inputs}, _step_options) do
@@ -16,6 +21,7 @@ defmodule QuincunxTest.DummyOrchidStep do
   end
 
   defmodule DummyStep3 do
+    @moduledoc false
     use Orchid.Step
 
     def run([%Orchid.Param{payload: i1}, %Orchid.Param{payload: i2}], _step_options) do
@@ -24,6 +30,7 @@ defmodule QuincunxTest.DummyOrchidStep do
   end
 
   defmodule DummyStep4 do
+    @moduledoc false
     use Orchid.Step
 
     def run(%Orchid.Param{payload: inputs}, _step_options) do

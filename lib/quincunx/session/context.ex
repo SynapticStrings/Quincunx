@@ -1,4 +1,8 @@
 defmodule Quincunx.Session.Context do
+  @moduledoc """
+  A container for representing `Quincunx.Session.Server` state.
+  """
+
   alias Quincunx.Session.Storage
   alias Quincunx.Editor.{Segment, History}
   alias Quincunx.Renderer.{Blackboard, Planner}

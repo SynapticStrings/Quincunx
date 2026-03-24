@@ -1,5 +1,16 @@
 defmodule OrchidPlugin.Instrument do
-  # Integrate OrchidSymbiont
+  @moduledoc """
+  Integrate OrchidSymbiont with multiple Sessions.
+
+  ### Usage
+
+  Build several symionts and its related step.
+
+  ### Roadmap
+
+  - [x] Session without `symbionts_mapper` *(In Symbiont's test code)*
+  - [ ] Session with `symbionts_mapper`
+  """
 
   @behaviour Orchid.Plugin
 

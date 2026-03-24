@@ -1,8 +1,10 @@
 defmodule Quincunx.Topology.Cluster do
-  # Cluster dependencies based on user selections and dependency relationships
-  # at the front end to achieve parallel control
-  # i.e., isolate resource-intensive services and convert the entire parallel task
-  # into a serial + parallel process.
+  @moduledoc """
+  Cluster dependencies based on user selections and dependency relationships at the front end to achieve parallel control
+
+  i.e., isolate resource-intensive services and convert the entire parallel task into a serial + parallel process.
+  """
+
   alias Quincunx.Topology.Graph.{Node, Edge}
 
   @type cluster_name :: atom() | String.t() | [cluster_name()]
