@@ -10,8 +10,7 @@ defmodule Quincunx.Session.InstanceSupervisor do
   @impl true
   def init({session_id, opts}) do
     children = [
-      # TODO: Update OrchidSymbiont's version
-      {Orchid.Symbiont.Runtime, session_id: session_id},
+      {OrchidSymbiont.Runtime, session_id: session_id},
       {Task.Supervisor, name: {:via, Registry, {Quincunx.SessionRegistry, {session_id, :task_sup}}}},
       {Quincunx.Session.Server, Keyword.put(opts, :session_id, session_id)}
     ]

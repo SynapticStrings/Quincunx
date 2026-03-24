@@ -22,7 +22,7 @@ defmodule OrchidPlugin.Instrument do
     clean_orchid_opts ++
       [
         baggage: %{old_baggage | symbiont_mapper: symbiont_mapper},
-        global_hooks_stack: old_hooks_stack ++ [Orchid.Symbiont.Hooks.Injector]
+        global_hooks_stack: old_hooks_stack ++ [OrchidSymbiont.Hooks.Injector]
       ]
   end
 end
