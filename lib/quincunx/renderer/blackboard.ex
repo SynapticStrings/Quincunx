@@ -13,8 +13,8 @@ defmodule Quincunx.Renderer.Blackboard do
 
   defstruct [:session_id, memory: %{}, cache_ref: nil]
 
-  @spec new(session_id()) :: t()
-  def new(session_id), do: %__MODULE__{session_id: session_id, memory: %{}}
+  @spec new(session_id(), cache_ref :: nil | Storage.t()) :: t()
+  def new(session_id, cache_ref), do: %__MODULE__{session_id: session_id, memory: %{}, cache_ref: cache_ref}
 
   @spec put(t(), %{addr() => Orchid.Param.t()}) :: t()
   def put(%__MODULE__{} = board, new_data) when is_map(new_data) do
