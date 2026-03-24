@@ -41,13 +41,15 @@ defmodule Quincunx.Editor.Segment do
     %{segment | history: History.push(segment.history, operation)}
   end
 
-  @spec undo(t()) :: t()
+  @spec undo(t()) :: {t(), History.Operation.t()}
   def undo(%__MODULE__{} = segment) do
-    %{segment | history: History.undo(segment.history)}
+    {his, op} = History.undo(segment.history)
+    {%{segment | history: his}, op}
   end
 
-  @spec redo(t()) :: t()
+  @spec redo(t()) :: {t(), History.Operation.t()}
   def redo(%__MODULE__{} = segment) do
-    %{segment | history: History.redo(segment.history)}
+    {his, op} = History.redo(segment.history)
+    {%{segment | history: his}, op}
   end
 end

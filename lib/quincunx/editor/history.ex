@@ -26,6 +26,7 @@ defmodule Quincunx.Editor.History do
             {:set_intervention, PortRef.t(), intervention_type(), data :: any()}
             | {:remove_intervention, PortRef.t(), intervention_type()}
             | {:clear_interventions, PortRef.t()}
+            | nil
 
     @type t :: topology_mutation() | data_interventions() | input_declar()
 
@@ -63,22 +64,22 @@ defmodule Quincunx.Editor.History do
   @doc "Initialize a new History record container."
   def new, do: %__MODULE__{}
 
-  @spec push(t(), any()) :: t()
+  @spec push(t(), Operation.t()) :: t()
   def push(%__MODULE__{undo_stack: undo} = history, op) do
     %{history | undo_stack: [op | undo], redo_stack: []}
   end
 
-  @spec undo(t()) :: t()
-  def undo(%__MODULE__{undo_stack: []} = history), do: history
+  @spec undo(t()) :: {t(), Operation.t()}
+  def undo(%__MODULE__{undo_stack: []} = history), do: {history, nil}
 
   def undo(%__MODULE__{undo_stack: [last_op | rest_undo], redo_stack: redo} = history) do
-    %{history | undo_stack: rest_undo, redo_stack: [last_op | redo]}
+    {%{history | undo_stack: rest_undo, redo_stack: [last_op | redo]}, last_op}
   end
 
-  @spec redo(t()) :: t()
-  def redo(%__MODULE__{redo_stack: []} = history), do: history
+  @spec redo(t()) :: {t(), Operation.t()}
+  def redo(%__MODULE__{redo_stack: []} = history), do: {history, nil}
 
   def redo(%__MODULE__{undo_stack: undo, redo_stack: [next_op | rest_redo]} = history) do
-    %{history | undo_stack: [next_op | undo], redo_stack: rest_redo}
+    {%{history | undo_stack: [next_op | undo], redo_stack: rest_redo}, next_op}
   end
 end

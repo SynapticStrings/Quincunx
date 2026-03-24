@@ -6,30 +6,11 @@ defmodule Quincunx.Session.Server do
 
   require Logger
 
-  alias Quincunx.Session.Storage
+  alias Quincunx.Session.{Storage, Context}
   alias Quincunx.Session
-  alias Quincunx.Editor.{Segment, History.Resolver, History.Operation}
-  alias Quincunx.Renderer.{Blackboard, Planner, Dispatcher}
+  alias Quincunx.Editor.{Segment, History.Resolver}
+  alias Quincunx.Renderer.{Planner, Dispatcher}
   alias Quincunx.Compiler.{GraphBuilder, RecipeBundle}
-
-  defmodule State do
-    @type t :: %__MODULE__{
-            session_id: term(),
-            segments: %{Segment.id() => Segment.t()},
-            static_bundles_cache: %{Segment.id() => [RecipeBundle.t()]},
-            blackboard: Blackboard.t(),
-            storage: Storage.t() | nil,
-            render_tasks: Task.t() | nil
-          }
-    defstruct [
-      :session_id,
-      :storage,
-      segments: %{},
-      static_bundles_cache: %{},
-      blackboard: nil,
-      render_tasks: nil
-    ]
-  end
 
   def start_link(opts) do
     session_id = Keyword.fetch!(opts, :session_id)
@@ -41,26 +22,16 @@ defmodule Quincunx.Session.Server do
     session_id = Keyword.fetch!(opts, :session_id)
     storage = if Keyword.get(opts, :enable_cache, true), do: Storage.new(), else: nil
 
-    {:ok,
-     %State{
-       session_id: session_id,
-       storage: storage,
-       blackboard: Blackboard.new(session_id)
-     }}
+    {:ok, Context.new(session_id, storage)}
   end
 
   @impl true
-  def handle_cast({:add_segment, %Segment{} = segment}, %State{} = state) do
-    if Map.has_key?(state.segments, segment.id) do
-      {:noreply, state}
-    else
-      new_state = put_in(state.segments[segment.id], segment)
-      {:noreply, new_state}
-    end
+  def handle_cast({:add_segment, %Segment{} = segment}, %Context{} = state) do
+    {:noreply, Context.add_segment(state, segment)}
   end
 
   @impl true
-  def handle_cast({:remove_segment, seg_id}, %State{} = state) do
+  def handle_cast({:remove_segment, seg_id}, %Context{} = state) do
     new_state = %{state |
       segments: Map.delete(state.segments, seg_id),
       static_bundles_cache: Map.delete(state.static_bundles_cache, seg_id)
@@ -69,24 +40,15 @@ defmodule Quincunx.Session.Server do
   end
 
   @impl true
-  def handle_cast({:apply_operation, seg_id, op}, %State{} = state) do
-    segment = Map.fetch!(state.segments, seg_id)
-    updated_segment = Segment.apply_operation(segment, op)
-
-    state = put_in(state.segments[seg_id], updated_segment)
-
-    state =
-      if Operation.topology?(op) do
-        %{state | static_bundles_cache: Map.delete(state.static_bundles_cache, seg_id)}
-      else
-        state
-      end
-
-    {:noreply, state}
+  def handle_cast({:apply_operation, seg_id, op}, %Context{} = state) do
+    case Context.operate(state, seg_id, op) do
+      %Context{} = new_state -> {:noreply, new_state}
+      {:seg_not_exist, ^seg_id} -> {:noreply, state}
+    end
   end
 
   @impl true
-  def handle_cast({:dispatch, dispatch_opts}, %State{} = state) do
+  def handle_cast({:dispatch, dispatch_opts}, %Context{} = state) do
     case compile_and_plan(state) do
       {new_state, {:ok, plan}} ->
         if state.render_tasks do
@@ -112,14 +74,14 @@ defmodule Quincunx.Session.Server do
   end
 
   @impl true
-  def handle_info({ref, {:ok, new_board}}, %State{render_tasks: %{ref: ref}} = state) do
+  def handle_info({ref, {:ok, new_board}}, %Context{render_tasks: %{ref: ref}} = state) do
     Process.demonitor(ref, [:flush])
 
     {:noreply, %{state | blackboard: new_board, render_tasks: nil}}
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _pid, reason}, %State{render_tasks: %{ref: ref}} = state) do
+  def handle_info({:DOWN, ref, :process, _pid, reason}, %Context{render_tasks: %{ref: ref}} = state) do
     if reason != :killed do
       require Logger
       Logger.error("Engine crashed!\n\nReason: #{inspect(reason)}")
@@ -135,7 +97,7 @@ defmodule Quincunx.Session.Server do
     {:noreply, state}
   end
 
-  defp compile_and_plan(%State{} = state) do
+  defp compile_and_plan(%Context{} = state) do
     compiled =
       Enum.map(state.segments, fn {seg_id, segment} ->
         compile_segment(seg_id, segment, state.static_bundles_cache)

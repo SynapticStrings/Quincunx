@@ -4,6 +4,7 @@ defmodule Quincunx.Session do
   """
   import Quincunx.SessionRegistry
 
+  @type id :: binary()
   @type session :: GenServer.server()
 
   def start(session_id, opts \\ []) do
