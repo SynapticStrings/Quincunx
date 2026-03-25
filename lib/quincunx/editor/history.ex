@@ -45,12 +45,9 @@ defmodule Quincunx.Editor.History do
   end
 
   alias Quincunx.Topology.Graph
+  alias Quincunx.Editor.Segment
 
-  @type interventions_map :: %{
-          Graph.PortRef.t() => %{Operation.intervention_type() => any()}
-        }
-
-  @type effective_state :: {Graph.t(), interventions_map()}
+  @type effective_state :: {Graph.t(), Segment.interventions_map()}
 
   @type t :: %__MODULE__{
           # new as head

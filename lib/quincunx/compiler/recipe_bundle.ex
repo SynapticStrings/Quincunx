@@ -2,18 +2,15 @@ defmodule Quincunx.Compiler.RecipeBundle do
   @moduledoc "Container for static AST and dynamic parameters."
 
   alias Quincunx.Topology.Graph
-  alias Quincunx.Editor
-
-  @type intervention_type :: atom()
-  @type port_interventions :: %{intervention_type() => any()}
+  alias Quincunx.Editor.{Segment, History}
 
   @type t :: %__MODULE__{
-          id: Editor.Segment.id(),
+          id: Segment.id(),
           recipe: Orchid.Recipe.t(),
           requires: [Orchid.Step.io_key()],
           exports: [Orchid.Step.io_key()],
           node_ids: [Graph.Node.id()],
-          interventions: %{Graph.PortRef.t() => port_interventions()}
+          interventions: Segment.interventions_map()
         }
   defstruct [
     :id,
@@ -24,12 +21,12 @@ defmodule Quincunx.Compiler.RecipeBundle do
     interventions: %{}
   ]
 
-  @spec get_intervention(t(), Graph.PortRef.t(), intervention_type()) :: any()
+  @spec get_intervention(t(), Graph.PortRef.t(), History.Operation.intervention_type()) :: any()
   def get_intervention(%__MODULE__{} = bundle, port_ref, type) do
     get_in(bundle.interventions, [port_ref, type])
   end
 
-  @spec put_intervention(t(), Graph.PortRef.t(), intervention_type(), any()) :: t()
+  @spec put_intervention(t(), Graph.PortRef.t(), History.Operation.intervention_type(), any()) :: t()
   def put_intervention(%__MODULE__{} = bundle, port_ref, type, value) do
     new_interventions =
       Map.update(bundle.interventions, port_ref, %{type => value}, fn port_data ->
@@ -40,8 +37,18 @@ defmodule Quincunx.Compiler.RecipeBundle do
   end
 
   @doc "Bind pure data interventions into given static recipe bundles."
-  @spec bind_interventions([t()], Editor.History.interventions_map()) :: [t()]
+  @spec bind_interventions([t()], Segment.interventions_map()) :: [t()]
   def bind_interventions(static_recipes, interventions_map) do
+    do_bind_interventions(static_recipes, interventions_map)
+  end
+
+  @spec bind_interventions([t()], Segment.interventions_map(), Editor.Segment.interventions_map()) :: [t()]
+  def bind_interventions(static_recipes, interventions_map, interventions_from_segment) do
+    Map.merge(interventions_map, interventions_from_segment)
+    |> then(&do_bind_interventions(static_recipes, &1))
+  end
+
+  defp do_bind_interventions(static_recipes, interventions_map) do
     Enum.map(static_recipes, fn %{node_ids: node_ids} = static_bundle ->
       # Filter all interventions that belong to the current cluster nodes
       filtered_interventions =

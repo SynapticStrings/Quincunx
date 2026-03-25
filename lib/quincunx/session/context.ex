@@ -138,6 +138,10 @@ defmodule Quincunx.Session.Context do
   #   # ...
   # end
 
+  # Clear history and merge compiled graph and interventions into segments.
+  # def create_snapshot(%__MODULE__{} = _ctx) do
+  # end
+
   @spec compile_segment({Segment.id(), Segment.t()}, static_bundles_cache()) ::
           {:error, :cycle_detected}
           | {Segment.id(), derive :: :cache | :compile,

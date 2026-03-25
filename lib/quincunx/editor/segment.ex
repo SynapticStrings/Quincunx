@@ -7,6 +7,10 @@ defmodule Quincunx.Editor.Segment do
   alias Quincunx.Editor.History
   alias Quincunx.Topology.{Graph, Cluster}
 
+  @type interventions_map :: %{
+          Graph.PortRef.t() => %{Operation.intervention_type() => any()}
+        }
+
   @type id :: atom() | String.t()
 
   @type t :: %__MODULE__{
@@ -14,6 +18,7 @@ defmodule Quincunx.Editor.Segment do
           graph: Graph.t(),
           cluster: Cluster.t(),
           history: History.t(),
+          data_interventions: interventions_map(),
           extra: map()
         }
 
@@ -22,6 +27,7 @@ defmodule Quincunx.Editor.Segment do
     graph: %Graph{},
     cluster: %Cluster{},
     history: %History{},
+    data_interventions: %{},
     extra: %{}
   ]
 
@@ -34,6 +40,24 @@ defmodule Quincunx.Editor.Segment do
       cluster: cluster_declara,
       history: History.new()
     }
+  end
+
+  @spec inject_graph_and_interventions(t(), Graph.t(), map(), boolean()) :: t()
+  def inject_graph_and_interventions(
+      %__MODULE__{} = segment,
+      %Graph{} = graph,
+      data_interventions, clear_history \\ true)
+  do
+    history = if clear_history do
+      %History{}
+    else
+      segment.history
+    end
+    %{segment |
+        graph: graph, 
+        data_interventions: data_interventions,
+        history: history
+      }
   end
 
   @spec apply_operation(t(), History.Operation.t()) :: t()
