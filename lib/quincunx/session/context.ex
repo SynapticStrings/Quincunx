@@ -121,7 +121,7 @@ defmodule Quincunx.Session.Context do
         # Build Planner from recipe bundle always return `{:ok, plan}`
         {:ok, plan} =
           compiled_results
-          |> Enum.map(fn {id, _, _, {_, _, bundle}} -> {id, bundle} end)
+          |> Enum.map(fn {id, _, _, bundle} -> {id, bundle} end)
           |> Planner.build()
 
         new_ctx = %{
