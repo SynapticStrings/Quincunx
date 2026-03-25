@@ -11,7 +11,8 @@ defmodule Quincunx.Session.InstanceSupervisor do
   @impl true
   def init({session_id, opts}) do
     children = [
-      {OrchidSymbiont.Runtime, session_id: session_id, strict_mode: Keyword.get(opts, :orchid_symbiont_strict, false)},
+      {OrchidSymbiont.Runtime,
+       session_id: session_id, strict_mode: Keyword.get(opts, :orchid_symbiont_strict, false)},
       {Task.Supervisor, name: Session.task_sup(session_id)},
       {Quincunx.Session.Server, Keyword.put(opts, :session_id, session_id)}
     ]

@@ -5,11 +5,6 @@ defmodule OrchidPlugin.Instrument do
   ### Usage
 
   Build several symionts and its related step.
-
-  ### Roadmap
-
-  - [x] Session without `symbionts_mapper` *(In Symbiont's test code)*
-  - [ ] Session with `symbionts_mapper`
   """
 
   @behaviour Orchid.Plugin
@@ -32,6 +27,8 @@ defmodule OrchidPlugin.Instrument do
 
     clean_orchid_opts ++
       [
+        # Quincunx has alrealy injected `session_id` field
+        # into Orchid baggage
         baggage: %{old_baggage | symbiont_mapper: symbiont_mapper},
         global_hooks_stack: old_hooks_stack ++ [OrchidSymbiont.Hooks.Injector]
       ]
