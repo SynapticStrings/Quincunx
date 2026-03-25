@@ -160,7 +160,7 @@ defmodule Quincunx.Session.Context do
            {:compile, {effective_graph, interventions, GraphBuilder.compile_graph(effective_graph, seg.cluster)}} do
       err
     else
-      {derive, {:ok, {_g, _i, recipe_bundles} = cached_static_or_compiled}} ->
+      {derive, {_g, _i, {:ok, recipe_bundles} = cached_static_or_compiled}} ->
         recipe_bundle = RecipeBundle.bind_interventions(recipe_bundles, interventions)
 
         {seg_id, derive, cached_static_or_compiled, recipe_bundle}
