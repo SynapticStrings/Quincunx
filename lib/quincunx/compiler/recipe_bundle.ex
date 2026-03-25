@@ -42,7 +42,7 @@ defmodule Quincunx.Compiler.RecipeBundle do
     do_bind_interventions(static_recipes, interventions_map)
   end
 
-  @spec bind_interventions([t()], Segment.interventions_map(), Editor.Segment.interventions_map()) :: [t()]
+  @spec bind_interventions([t()], Segment.interventions_map(), Segment.interventions_map()) :: [t()]
   def bind_interventions(static_recipes, interventions_map, interventions_from_segment) do
     Map.merge(interventions_map, interventions_from_segment)
     |> then(&do_bind_interventions(static_recipes, &1))

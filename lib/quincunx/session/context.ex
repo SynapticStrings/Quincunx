@@ -4,11 +4,14 @@ defmodule Quincunx.Session.Context do
   """
 
   alias Quincunx.Session.Storage
+  alias Quincunx.Topology.Graph
   alias Quincunx.Editor.{Segment, History}
   alias Quincunx.Renderer.{Blackboard, Planner}
   alias Quincunx.Compiler.{RecipeBundle, GraphBuilder}
 
-  @type static_bundles_cache :: %{Segment.id() => {Graph.t(), Segment.interventions_map(), [RecipeBundle.t()]}}
+  @type static_bundles_cache :: %{
+          Segment.id() => {Graph.t(), Segment.interventions_map(), [RecipeBundle.t()]}
+        }
 
   @type t :: %__MODULE__{
           session_id: Quincunx.Session.id(),
@@ -127,7 +130,9 @@ defmodule Quincunx.Session.Context do
         new_ctx = %{
           ctx
           | static_bundles_cache:
-              Map.new(compiled_results, fn {id, _, static, _} -> {id, static} end)
+              Map.new(compiled_results, fn {id, graph, intervention, bundle} ->
+                {id, {graph, intervention, bundle}}
+              end)
         }
 
         {new_ctx, plan}
@@ -140,10 +145,11 @@ defmodule Quincunx.Session.Context do
 
   # Clear history and merge compiled graph and interventions into segments.
   def create_snapshot(%__MODULE__{} = ctx, clear_history \\ true) do
-    Map.merge(ctx.segments, ctx.static_bundles_cache,
-      fn _seg_id, segment, {graph, interventions, _}
-        -> Segment.inject_graph_and_interventions(segment, graph, interventions, clear_history)
-      end)
+    Map.merge(ctx.segments, ctx.static_bundles_cache, fn _seg_id,
+                                                         segment,
+                                                         {graph, interventions, _} ->
+      Segment.inject_graph_and_interventions(segment, graph, interventions, clear_history)
+    end)
   end
 
   @spec compile_segment({Segment.id(), Segment.t()}, static_bundles_cache()) ::
@@ -155,15 +161,18 @@ defmodule Quincunx.Session.Context do
     %{graph: effective_graph, interventions: interventions} =
       History.Resolver.resolve(seg.history, seg.graph)
 
-    with {:cache, :error} <- {:cache, Map.fetch(cache, seg_id)},
-         {:compile, {_, _, {:error, _} = err}} <-
-           {:compile, {effective_graph, interventions, GraphBuilder.compile_graph(effective_graph, seg.cluster)}} do
+    with :error <- Map.fetch(cache, seg_id),
+         {:error, _} = err <-
+           GraphBuilder.compile_graph(effective_graph, seg.cluster) do
       err
     else
-      {derive, {_g, _i, {:ok, recipe_bundles} = cached_static_or_compiled}} ->
+      {:ok, {cached_graph, cached_interventions, cached_recipe_bunles}} ->
+        {seg_id, cached_graph, cached_interventions, cached_recipe_bunles}
+
+      {:ok, recipe_bundles} ->
         recipe_bundle = RecipeBundle.bind_interventions(recipe_bundles, interventions)
 
-        {seg_id, derive, cached_static_or_compiled, recipe_bundle}
+        {seg_id, effective_graph, interventions, recipe_bundle}
     end
   end
 

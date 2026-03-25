@@ -8,7 +8,7 @@ defmodule Quincunx.Editor.Segment do
   alias Quincunx.Topology.{Graph, Cluster}
 
   @type interventions_map :: %{
-          Graph.PortRef.t() => %{Operation.intervention_type() => any()}
+          Graph.PortRef.t() => %{History.Operation.intervention_type() => any()}
         }
 
   @type id :: atom() | String.t()
@@ -54,7 +54,7 @@ defmodule Quincunx.Editor.Segment do
       segment.history
     end
     %{segment |
-        graph: graph, 
+        graph: graph,
         data_interventions: data_interventions,
         history: history
       }
