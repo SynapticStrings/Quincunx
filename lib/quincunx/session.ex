@@ -36,7 +36,7 @@ defmodule Quincunx.Session do
     end
   end
 
-  def instance_sup(session_id), do: key(session_id, :instance_sup)
-  def task_sup(session_id), do: key(session_id, :task_sup)
-  def server(session_id), do: key(session_id, :server)
+  def instance_sup(session_id), do: via(session_id, :instance_sup)
+  def task_sup(session_id), do: via(session_id, :task_sup)
+  def server(session_id), do: via(session_id, :server)
 end

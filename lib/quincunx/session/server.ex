@@ -60,6 +60,11 @@ defmodule Quincunx.Session.Server do
   end
 
   @impl true
+  def handle_call(:inspect, _from, %Context{} = state) do
+    {:reply, {:ok, state}, state}
+  end
+
+  @impl true
   def handle_info({ref, {:ok, new_board}}, %Context{render_tasks: %{ref: ref}} = state) do
     Process.demonitor(ref, [:flush])
 

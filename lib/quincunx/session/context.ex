@@ -149,7 +149,7 @@ defmodule Quincunx.Session.Context do
 
     with {:cache, :error} <- {:cache, Map.fetch(cache, seg_id)},
          {:compile, {:error, _} = err} <-
-           {:compile, GraphBuilder.compile_graph(effective_graph.graph, seg.cluster)} do
+           {:compile, GraphBuilder.compile_graph(effective_graph, seg.cluster)} do
       err
     else
       {derive, {:ok, cached_static_or_compiled}} ->
