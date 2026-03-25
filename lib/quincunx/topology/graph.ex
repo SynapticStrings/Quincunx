@@ -58,9 +58,16 @@ defmodule Quincunx.Topology.Graph do
 
     @type t :: {:port, node :: Node.id(), port :: atom()}
 
-    @spec to_orchid_key(t()) :: Orchid.Step.io_key()
+    @spec to_orchid_key(t()) :: atom()
     def to_orchid_key({:port, node, port}) do
       :"#{node}_#{port}"
+    end
+
+    # Adapt Orchid's new version
+    # (after that, will replace legacy to_orchid_key/1)
+    @spec to_orchid_binary_key(t()) :: binary()
+    def to_orchid_binary_key({:port, node, port}) do
+      "#{node}_#{port}"
     end
   end
 
