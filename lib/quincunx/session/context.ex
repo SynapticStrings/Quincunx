@@ -8,12 +8,12 @@ defmodule Quincunx.Session.Context do
   alias Quincunx.Renderer.{Blackboard, Planner}
   alias Quincunx.Compiler.{RecipeBundle, GraphBuilder}
 
-  @type static_bundles_cache :: %{Segment.id() => [RecipeBundle.t()]}
+  @type static_bundles_cache :: %{Segment.id() => {Graph.t(), Segment.interventions_map(), [RecipeBundle.t()]}}
 
   @type t :: %__MODULE__{
           session_id: Quincunx.Session.id(),
           segments: %{Segment.id() => Segment.t()},
-          static_bundles_cache: %{Segment.id() => [RecipeBundle.t()]},
+          static_bundles_cache: static_bundles_cache(),
           blackboard: Blackboard.t(),
           storage: Storage.t() | nil,
           render_tasks: Task.t() | nil
@@ -139,8 +139,12 @@ defmodule Quincunx.Session.Context do
   # end
 
   # Clear history and merge compiled graph and interventions into segments.
-  # def create_snapshot(%__MODULE__{} = _ctx) do
-  # end
+  def create_snapshot(%__MODULE__{} = ctx, clear_history \\ true) do
+    Map.merge(ctx.segments, ctx.static_bundles_cache,
+      fn _seg_id, segment, {graph, interventions, _}
+        -> Segment.inject_graph_and_interventions(segment, graph, interventions, clear_history)
+      end)
+  end
 
   @spec compile_segment({Segment.id(), Segment.t()}, static_bundles_cache()) ::
           {:error, :cycle_detected}
@@ -153,11 +157,11 @@ defmodule Quincunx.Session.Context do
 
     with {:cache, :error} <- {:cache, Map.fetch(cache, seg_id)},
          {:compile, {:error, _} = err} <-
-           {:compile, GraphBuilder.compile_graph(effective_graph, seg.cluster)} do
+           {:compile, {effective_graph, interventions, GraphBuilder.compile_graph(effective_graph, seg.cluster)}} do
       err
     else
-      {derive, {:ok, cached_static_or_compiled}} ->
-        recipe_bundle = RecipeBundle.bind_interventions(cached_static_or_compiled, interventions)
+      {derive, {:ok, {_g, _i, recipe_bundles} = cached_static_or_compiled}} ->
+        recipe_bundle = RecipeBundle.bind_interventions(recipe_bundles, interventions)
 
         {seg_id, derive, cached_static_or_compiled, recipe_bundle}
     end
