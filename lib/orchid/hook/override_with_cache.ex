@@ -1,4 +1,4 @@
-defmodule Orchid.Hook.Override do
+defmodule Orchid.Hook.OverrideWithCache do
   @moduledoc """
   ...
 
@@ -10,7 +10,14 @@ defmodule Orchid.Hook.Override do
 
   @impl true
   def call(ctx, next_fn) do
-    next_fn.(ctx)
+    # When intervention at Input slot =>
+    #   replace inputs, then call `OrchidStratum.BypassHook`
+    #     explicitly;
+    # When intercention at Output slot(FULL) =>
+    #   replace outputs directly;
+    ## When intercention at Output slot(PARTIAL) =>
+    #   call inner function and then replace related output;
+    OrchidStratum.BypassHook.call(ctx, next_fn)
   end
 
   def get_override(%Orchid.Runner.Context{workflow_ctx: workflow_ctx}) do

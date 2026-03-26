@@ -15,5 +15,14 @@ defmodule OrchidPlugin.Cache do
       _ ->
         {recipe, base_run_opts}
     end
+    |> then(fn
+      {recipe, old_opts} ->
+        hook_stack =
+          Keyword.get(old_opts, :global_hooks_stack)
+          |> Enum.reject(fn module -> module == OrchidStratum.BypassHook end)
+
+        # Use Orchid.Hook.OverrideWithCache to replace
+        {recipe, [Orchid.Hook.OverrideWithCache | hook_stack]}
+    end)
   end
 end
