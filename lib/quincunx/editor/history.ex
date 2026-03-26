@@ -8,8 +8,16 @@ defmodule Quincunx.Editor.History do
 
     alias Quincunx.Topology.Graph.{Node, Edge, PortRef}
 
+    @typedoc """
+    Introducing external data into the DAG.
+
+    This includes, but is not limited to,
+    serving as input to a node, overriding the output of a node,
+    and performing various operations on upstream inputs and external interventions at new intervention points.
+    """
     @type intervention_type :: :input | :override | :offset | :mask | atom()
 
+    @typedoc "This indicates the change in the DAG topology."
     @type topology_mutation ::
             {:add_node, Node.t()}
             | {:update_node, Node.id(),
@@ -18,18 +26,18 @@ defmodule Quincunx.Editor.History do
             | {:add_edge, Edge.t()}
             | {:remove_edge, Edge.t()}
 
-    @type input_declar ::
-            {:set_input, PortRef.t(), data :: any()}
-            | {:remove_input, PortRef.t()}
-
+    @typedoc "Record the data intervention operations."
     @type data_interventions ::
             {:set_intervention, PortRef.t(), intervention_type(), data :: any()}
             | {:remove_intervention, PortRef.t(), intervention_type()}
             | {:clear_interventions, PortRef.t()}
             | nil
 
-    @type t :: topology_mutation() | data_interventions() | input_declar()
+    @type t :: topology_mutation() | data_interventions()
 
+    # Because the subsequent context needs to preserve the graph structure and RecipeBundle
+    # as a cache (or snapshot), it is necessary to record whether the update operations(compared to the snapshot)
+    # involve the topology of the execution graph (excluding the cluster options).
     @spec topology?(t()) :: boolean()
     def topology?(op)
         when elem(op, 0) in [
@@ -43,11 +51,6 @@ defmodule Quincunx.Editor.History do
 
     def topology?(_), do: false
   end
-
-  alias Quincunx.Topology.Graph
-  alias Quincunx.Editor.Segment
-
-  @type effective_state :: {Graph.t(), Segment.interventions_map()}
 
   @type t :: %__MODULE__{
           # new as head
@@ -65,6 +68,10 @@ defmodule Quincunx.Editor.History do
   def push(%__MODULE__{undo_stack: undo} = history, op) do
     %{history | undo_stack: [op | undo], redo_stack: []}
   end
+
+  # Let me explain why undo & redo required pop operation
+  # because it required pass Operation.topology?/1 or other function
+  # to dicided how to do next.
 
   @spec undo(t()) :: {t(), Operation.t()}
   def undo(%__MODULE__{undo_stack: []} = history), do: {history, nil}

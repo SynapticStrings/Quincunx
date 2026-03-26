@@ -53,6 +53,7 @@ defmodule Quincunx.Renderer.Worker do
     Map.new(interventions, fn {k, v} -> {PortRef.to_orchid_key(k), v} end)
   end
 
+  # TODO: required refactor after intervention's API are consolidate.
   defp resolve_from_intervention(orchid_key, interventions) do
     case Map.get(interventions, orchid_key) do
       %{input: %Orchid.Param{} = param} -> %{param | name: orchid_key}

@@ -158,7 +158,7 @@ defmodule Quincunx.Session.Context do
              cached_static_or_compiled_recipe :: [RecipeBundle.t()],
              recipe_bundle :: [RecipeBundle.t()]}
   def compile_segment({seg_id, %Segment{} = seg}, cache) do
-    %{graph: effective_graph, interventions: interventions} =
+    {effective_graph, interventions} =
       History.Resolver.resolve(seg.history, seg.graph)
 
     with :error <- Map.fetch(cache, seg_id),

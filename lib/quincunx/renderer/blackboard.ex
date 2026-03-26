@@ -27,10 +27,17 @@ defmodule Quincunx.Renderer.Blackboard do
     %{board | memory: Map.merge(board.memory, new_data)}
   end
 
-  @spec fetch_requires(t(), [addr()]) :: %{addr() => Orchid.Param.t()}
-  def fetch_requires(%__MODULE__{memory: mem}, required_keys) do
+  @spec fetch_contents(t(), [addr()]) :: %{addr() => Orchid.Param.t()}
+  def fetch_contents(%__MODULE__{memory: mem}, required_keys) do
     required_keys
     |> Enum.map(fn key -> {key, Map.get(mem, key)} end)
     |> Enum.into(%{})
+  end
+
+  @spec fetch_contents(t(), Segment.id()) :: %{addr() => Orchid.Param.t()}
+  def fetch_via_session(%__MODULE__{memory: mem} = blackboard, session_id) do
+    Map.keys(mem)
+    |> Enum.filter(fn {ssid, _} ->session_id == ssid end)
+    |> then(&fetch_contents(blackboard, &1))
   end
 end

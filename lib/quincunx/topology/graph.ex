@@ -60,6 +60,8 @@ defmodule Quincunx.Topology.Graph do
 
     @type t :: {:port, node :: Node.id(), Node.node_port()}
 
+    # This is actually a rather old design(Old orchid not support binary step io key),
+    # but let's keep it for now.
     @spec to_orchid_key(t()) :: Orchid.Step.io_key()
     def to_orchid_key({:port, node, port}) do
       Atom.to_string(node) <> "_" <> parse_port(port)

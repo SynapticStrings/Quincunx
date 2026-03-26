@@ -6,9 +6,9 @@ defmodule Quincunx.Editor.History.Resolver do
   alias Quincunx.Topology.Graph
   alias Quincunx.Editor.{History, History.Operation}
 
-  @type effective_state :: %{
-          graph: Graph.t(),
-          interventions: %{Graph.PortRef.t() => %{Operation.intervention_type() => any()}}
+  @type effective_state :: {
+          Graph.t(),
+          %{Graph.PortRef.t() => %{Operation.intervention_type() => any()}}
         }
 
   @doc """
@@ -24,7 +24,7 @@ defmodule Quincunx.Editor.History.Resolver do
     effective_graph = apply_topology(graph, topology_ops)
     interventions = apply_interventions(data_ops)
 
-    %{graph: effective_graph, interventions: interventions}
+    {effective_graph, interventions}
   end
 
   defp apply_topology(%Graph{} = base_graph, topology_ops) do

@@ -63,7 +63,7 @@ alias Quincunx.Session.Segment
 alias Quincunx.Session.Renderer.{Planner, Dispatcher, Blackboard}
 
 # 1. User applies an operation
-dirty_segment = Segment.apply_operation(segment, {:set_input, port_key, curve_data})
+dirty_segment = Segment.apply_operation(segment, {:set_intervention, port_key, :input, curve_data})
 
 # 2. Planner compiles and aligns segments
 {:ok, plan} = Planner.build([dirty_segment])
