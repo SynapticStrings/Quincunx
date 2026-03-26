@@ -62,8 +62,11 @@ defmodule Quincunx.Topology.Graph do
 
     @spec to_orchid_key(t()) :: Orchid.Step.io_key()
     def to_orchid_key({:port, node, port}) do
-      Atom.to_string(node) <> "_" <> port
+      Atom.to_string(node) <> "_" <> parse_port(port)
     end
+
+    defp parse_port(p) when is_binary(p), do: p
+    defp parse_port(p) when is_atom(p), do: Atom.to_string(p)
   end
 
   # May add adjacency lists in future
