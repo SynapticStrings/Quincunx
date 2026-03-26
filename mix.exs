@@ -11,7 +11,13 @@ defmodule Quincunx.MixProject do
       deps: deps(),
       dialyzer: [
         flags: [:no_opaque]
-      ]
+      ],
+      test_coverage: [
+        ignore_modules: [
+          ~r/QuincunxTest.DummyOrchidStep.DummyStep*/,
+          # For other module, while complete.
+          ]
+        ]
     ]
   end
 
