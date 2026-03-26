@@ -8,11 +8,13 @@ defmodule Quincunx.Topology.Graph do
 
     @type id :: atom() | String.t()
 
+    @type node_port :: atom() | binary()
+
     @type t :: %__MODULE__{
             id: id(),
             impl: Orchid.Step.implementation(),
-            inputs: [atom()],
-            outputs: [atom()],
+            inputs: [node_port()],
+            outputs: [node_port()],
             opts: keyword(),
             extra: map()
           }
@@ -36,9 +38,9 @@ defmodule Quincunx.Topology.Graph do
 
     @type t :: %__MODULE__{
             from_node: Node.id(),
-            from_port: atom(),
+            from_port: Node.node_port(),
             to_node: Node.id(),
-            to_port: atom()
+            to_port: Node.node_port()
           }
 
     defstruct [:from_node, :from_port, :to_node, :to_port]
@@ -56,18 +58,11 @@ defmodule Quincunx.Topology.Graph do
   defmodule PortRef do
     @moduledoc "A container based on the node/port representation, used to dynamically generate Orchid keys."
 
-    @type t :: {:port, node :: Node.id(), port :: atom()}
+    @type t :: {:port, node :: Node.id(), Node.node_port()}
 
-    @spec to_orchid_key(t()) :: atom()
+    @spec to_orchid_key(t()) :: Orchid.Step.io_key()
     def to_orchid_key({:port, node, port}) do
-      :"#{node}_#{port}"
-    end
-
-    # Adapt Orchid's new version
-    # (after that, will replace legacy to_orchid_key/1)
-    @spec to_orchid_binary_key(t()) :: binary()
-    def to_orchid_binary_key({:port, node, port}) do
-      "#{node}_#{port}"
+      Atom.to_string(node) <> "_" <> port
     end
   end
 
