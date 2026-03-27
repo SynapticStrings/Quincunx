@@ -36,8 +36,8 @@ defmodule Quincunx.Topology.GraphTest do
       port_ref_with_atom = {:port, :foo, :bar}
       port_ref_with_binary = {:port, :foo, "barr"}
 
-      assert PortRef.to_orchid_key(port_ref_with_atom) == "foo_bar"
-      assert PortRef.to_orchid_key(port_ref_with_binary) == "foo_barr"
+      assert PortRef.to_orchid_key(port_ref_with_atom) == "foo|bar"
+      assert PortRef.to_orchid_key(port_ref_with_binary) == "foo|barr"
     end
 
     test "Quincunx.Topology.Graph.add_node/2" do
