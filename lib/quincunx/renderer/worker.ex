@@ -11,10 +11,13 @@ defmodule Quincunx.Renderer.Worker do
   alias Quincunx.Compiler.RecipeBundle
   alias Quincunx.Renderer.{Blackboard, Configurator}
 
+  # TODO: Split it into two phases.
+  #   1. Let RecipeBundle into Orchid run opts
+  #   2. Run Orchid
   @spec run(Segment.id(), RecipeBundle.t(), Blackboard.t(), Configurator.t()) ::
           {:ok, Segment.id(), map()} | {:error, term()}
   def run(seg_id, %RecipeBundle{} = bundle, %Blackboard{} = blackboard, %Configurator{} = ctx) do
-    intervention_by_orchid_key = get_intervention_via_orchid(bundle.interventions)
+    intervention_by_orchid_key = Map.new(bundle.interventions, fn {k, v} -> {PortRef.to_orchid_key(k), v} end)
 
     dynamic_inputs = resolve_dependencies(seg_id, bundle, blackboard, intervention_by_orchid_key)
 
@@ -47,10 +50,6 @@ defmodule Quincunx.Renderer.Worker do
           resolve_from_intervention(orchid_key, intervention_by_orchid_key)
       end
     end)
-  end
-
-  def get_intervention_via_orchid(interventions) do
-    Map.new(interventions, fn {k, v} -> {PortRef.to_orchid_key(k), v} end)
   end
 
   # TODO: required refactor after intervention's API are consolidate.

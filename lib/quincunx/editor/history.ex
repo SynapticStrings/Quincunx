@@ -8,13 +8,6 @@ defmodule Quincunx.Editor.History do
 
     alias Quincunx.Topology.Graph.{Node, Edge, PortRef}
 
-    @typedoc """
-    Introducing external data into the DAG.
-
-    This includes, but is not limited to,
-    serving as input to a node, overriding the output of a node,
-    and performing various operations on upstream inputs and external interventions at new intervention points.
-    """
     @type intervention_type :: :input | :override | :offset | :mask | atom()
 
     @typedoc "This indicates the change in the DAG topology."
