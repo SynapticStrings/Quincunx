@@ -9,7 +9,7 @@ defmodule OrchidPlugin.Instrument do
       {OrchidPlugin.Instrument, {"CurrentSessionID", %{}}
   """
 
-  @behaviour Orchid.Plugin
+  @behaviour OrchidPlugin
 
   @impl true
   def apply_plugin({orchid_recipe, opts}, symbionts_ctx)

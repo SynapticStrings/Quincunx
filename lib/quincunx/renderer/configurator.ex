@@ -3,7 +3,7 @@ defmodule Quincunx.Renderer.Configurator do
   Immutable render-pass configuration.
 
   Built once at the dispatch boundary, threaded downward to Worker and the
-  plugin chain. Adding a new `Orchid.Plugin` never requires editing
+  plugin chain. Adding a new `OrchidPlugin` never requires editing
   Dispatcher or Worker — just append it to `:plugins` and supply its
   scope key in opts.
 
@@ -48,7 +48,7 @@ defmodule Quincunx.Renderer.Configurator do
   Run every plugin in order over the `{recipe, run_opts}` tuple.
   Each plugin may rewrite the recipe or append to run_opts.
   """
-  @spec apply_plugins(t(), Orchid.Plugin.orchid_tuple()) :: Orchid.Plugin.orchid_tuple()
+  @spec apply_plugins(t(), OrchidPlugin.orchid_tuple()) :: OrchidPlugin.orchid_tuple()
   def apply_plugins(%__MODULE__{plugins: plugins}, orchid_tuple) do
     Enum.reduce(plugins, orchid_tuple, fn plugin, acc ->
       case plugin do

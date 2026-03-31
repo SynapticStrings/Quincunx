@@ -1,4 +1,4 @@
-defmodule Orchid.Plugin do
+defmodule OrchidPlugin do
   @moduledoc """
   Responsible to integrate Orchid's custome Hooks/Operons into Quincunx renderer.
   """
