@@ -8,13 +8,16 @@ defmodule Quincunx.Session.Storage do
   """
 
   @type storage :: term()
+  @type store_conf :: {module(), storage()} | nil
 
   @type t :: %__MODULE__{
-          meta_conf: {module(), storage()},
-          blob_conf: {module(), storage()}
+          meta_conf: store_conf(),
+          blob_conf: store_conf(),
+          interv_conf: store_conf(),
+          merge_conf: store_conf()
         }
 
-  defstruct [:meta_conf, :blob_conf]
+  defstruct [:meta_conf, :blob_conf, :interv_conf, :merge_conf]
 
   alias OrchidStratum.MetaStorage.EtsAdapter, as: EtsMetaStorage
   alias OrchidStratum.BlobStorage.EtsAdapter, as: EtsBlobStorage
@@ -30,18 +33,22 @@ defmodule Quincunx.Session.Storage do
 
     new(
       {EtsMetaStorage, meta_ref},
-      {EtsBlobStorage, blob_ref}
+      {EtsBlobStorage, blob_ref},
+      nil,
+      nil
     )
   end
 
   @doc """
   Create a configuration from custom adapters.
   """
-  @spec new({module(), term()}, {module(), term()}) :: t()
-  def new(meta_conf, blob_conf) do
+  @spec new(store_conf(), store_conf(), store_conf(), store_conf()) :: t()
+  def new(meta_conf, blob_conf, interv_conf, merge_conf) do
     %__MODULE__{
       meta_conf: meta_conf,
-      blob_conf: blob_conf
+      blob_conf: blob_conf,
+      interv_conf: interv_conf,
+      merge_conf: merge_conf
     }
   end
 end
