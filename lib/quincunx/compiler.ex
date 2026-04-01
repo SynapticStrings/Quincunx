@@ -17,7 +17,7 @@ defmodule Quincunx.Compiler do
         {effective_graph, interventions} =
           History.Resolver.resolve(seg.history, seg.graph)
 
-        %{segment: seg, graph: effective_graph, interventions: interventions}
+        %{segment: seg, graph: effective_graph, interventions: merge_check_interventions(interventions, effective_graph)}
       end)
 
     grouped_by_topology = Enum.group_by(resolved_items, &{&1.graph, &1.segment.cluster})
@@ -44,4 +44,8 @@ defmodule Quincunx.Compiler do
       end
     end)
   end
+
+  # TODO: except input, if portref link to input side => move to output side
+  # because hook only works when complete calculation or short circuit
+  defp merge_check_interventions(intervention, _graph), do: intervention
 end
