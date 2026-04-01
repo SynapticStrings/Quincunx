@@ -2,7 +2,7 @@ defmodule Quincunx.Compiler.RecipeBundle do
   @moduledoc "Container for static AST and dynamic parameters."
 
   alias Quincunx.Topology.Graph
-  alias Quincunx.Editor.{Segment, History}
+  alias Quincunx.Editor.Segment
 
   @type t :: %__MODULE__{
           id: Segment.id(),
@@ -21,20 +21,20 @@ defmodule Quincunx.Compiler.RecipeBundle do
     interventions: %{}
   ]
 
-  @spec get_intervention(t(), Graph.PortRef.t(), History.Operation.intervention_type()) :: any()
-  def get_intervention(%__MODULE__{} = bundle, port_ref, type) do
-    get_in(bundle.interventions, [port_ref, type])
-  end
+  # @spec get_intervention(t(), Graph.PortRef.t(), History.Operation.intervention_type()) :: any()
+  # def get_intervention(%__MODULE__{} = bundle, port_ref, type) do
+  #   get_in(bundle.interventions, [port_ref, type])
+  # end
 
-  @spec put_intervention(t(), Graph.PortRef.t(), History.Operation.intervention_type(), any()) :: t()
-  def put_intervention(%__MODULE__{} = bundle, port_ref, type, value) do
-    new_interventions =
-      Map.update(bundle.interventions, port_ref, %{type => value}, fn port_data ->
-        Map.put(port_data, type, value)
-      end)
+  # @spec put_intervention(t(), Graph.PortRef.t(), History.Operation.intervention_type(), any()) :: t()
+  # def put_intervention(%__MODULE__{} = bundle, port_ref, type, value) do
+  #   new_interventions =
+  #     Map.update(bundle.interventions, port_ref, {type, value}, fn _old ->
+  #       {type, value}
+  #     end)
 
-    %{bundle | interventions: new_interventions}
-  end
+  #   %{bundle | interventions: new_interventions}
+  # end
 
   @doc "Bind pure data interventions into given static recipe bundles."
   @spec bind_interventions([t()], Segment.interventions_map()) :: [t()]
