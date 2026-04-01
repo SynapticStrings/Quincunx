@@ -1,4 +1,4 @@
-#[WIP] Quincunx
+# [WIP] Quincunx
 
 A lightweight orchestration core for real-time incremental generation, with parametric curve modulation and pluggable calculate backends.
 
