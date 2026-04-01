@@ -44,5 +44,4 @@ defmodule Quincunx.Compiler do
       end
     end)
   end
-
 end

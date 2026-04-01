@@ -28,7 +28,9 @@ defmodule Quincunx.Compiler.CompilerTest do
     import Quincunx.Compiler.RecipeBundle
 
     setup do
-      {:ok, graph} = compile_graph(build_finin_and_fanout_dag(), %Cluster{node_colors: %{step3: :red}})
+      {:ok, graph} =
+        compile_graph(build_finin_and_fanout_dag(), %Cluster{node_colors: %{step3: :red}})
+
       [graph: graph]
     end
 
@@ -48,6 +50,7 @@ defmodule Quincunx.Compiler.CompilerTest do
         {:port, :step1, :in} => {:input, "Foo"},
         {:port, :step2, :in} => {:input, "Bar"}
       }
+
       exist_intervention = %{
         {:port, :step4, :out1} => {:override, "Fin"}
       }
@@ -59,9 +62,18 @@ defmodule Quincunx.Compiler.CompilerTest do
     end
   end
 
-  describe "Facase" do
+  describe "Facade" do
+    import Quincunx.Compiler
+
     test "compile_to_recipes/1" do
-      # ...
+      {:ok, [{"Foo", [bundle2, bundle1]}]} =
+        Quincunx.Editor.Segment.new("Foo", build_finin_and_fanout_dag(), %Cluster{
+          node_colors: %{step3: :red}
+        })
+        |> compile_to_recipes()
+
+      assert is_struct(bundle1, RecipeBundle)
+      assert is_struct(bundle2, RecipeBundle)
     end
   end
 end
