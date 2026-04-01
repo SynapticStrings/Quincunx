@@ -22,16 +22,16 @@ defmodule Quincunx.Editor.History do
     @typedoc "Record the data intervention operations."
     @type data_interventions ::
             {:set_intervention, PortRef.t(), OrchidIntervention.intervention_type(), OrchidIntervention.payload()}
-            | {:remove_intervention, PortRef.t(), OrchidIntervention.intervention_type()}
-            | {:clear_interventions, PortRef.t()}
+            | {:clear_intervention, PortRef.t()}
             | nil
 
-    @type t :: topology_mutation() | data_interventions()
+    @type single_op :: topology_mutation() | data_interventions()
+    @type t :: single_op() | [single_op()]
 
     # Because the subsequent context needs to preserve the graph structure and RecipeBundle
     # as a cache (or snapshot), it is necessary to record whether the update operations(compared to the snapshot)
     # involve the topology of the execution graph (excluding the cluster options).
-    @spec topology?(t()) :: boolean()
+    @spec topology?(single_op()) :: boolean()
     def topology?(op)
         when elem(op, 0) in [
                :add_node,

@@ -48,6 +48,7 @@ defmodule Quincunx.Editor.Segment do
       %Graph{} = graph,
       data_interventions, clear_history \\ true)
   do
+    # Combine with cache/snapshot
     history = if clear_history do
       %History{}
     else

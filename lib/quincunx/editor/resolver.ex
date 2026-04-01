@@ -19,7 +19,9 @@ defmodule Quincunx.Editor.History.Resolver do
   @spec resolve(History.t(), Graph.t()) :: effective_state()
   def resolve(%History{} = history, graph) do
     {topology_ops, data_ops} =
-      Enum.split_with(history.undo_stack, &Operation.topology?/1)
+      history.undo_stack
+      |> List.flatten()
+      |> Enum.split_with(&Operation.topology?/1)
 
     effective_graph = apply_topology(graph, topology_ops)
     interventions = apply_interventions(data_ops)
@@ -51,26 +53,10 @@ defmodule Quincunx.Editor.History.Resolver do
   end
 
   defp do_apply_intervention({:set_intervention, port_ref, type, value}, acc) do
-    Map.update(acc, port_ref, %{type => value}, &Map.put(&1, type, value))
+    Map.update(acc, port_ref, {type, value}, fn _old -> {type, value} end)
   end
 
-  defp do_apply_intervention({:remove_intervention, port_ref, type}, acc) do
-    case Map.fetch(acc, port_ref) do
-      {:ok, port_data} ->
-        clean_port_data = Map.delete(port_data, type)
-
-        if map_size(clean_port_data) == 0 do
-          Map.delete(acc, port_ref)
-        else
-          Map.put(acc, port_ref, clean_port_data)
-        end
-
-      :error ->
-        acc
-    end
-  end
-
-  defp do_apply_intervention({:clear_interventions, port_ref}, acc) do
+  defp do_apply_intervention({:clear_intervention, port_ref}, acc) do
     Map.delete(acc, port_ref)
   end
 end
