@@ -50,12 +50,15 @@ defmodule Quincunx.Compiler.GraphBuilder do
           nil -> PortRef.to_orchid_key({:port, node.id, port_name})
           edge -> PortRef.to_orchid_key({:port, edge.from_node, edge.from_port})
         end
-      end) |> case do
+      end)
+      |> case do
         [single] -> single
         other -> other
       end
 
-    step_outputs = Enum.map(node.outputs, fn p -> PortRef.to_orchid_key({:port, node.id, p}) end) |> case do
+    step_outputs =
+      Enum.map(node.outputs, fn p -> PortRef.to_orchid_key({:port, node.id, p}) end)
+      |> case do
         [single] -> single
         other -> other
       end

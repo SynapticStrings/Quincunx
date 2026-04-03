@@ -18,12 +18,13 @@ defmodule Quincunx.Editor.HistoryResolverTest do
         History.new()
         |> History.push({:remove_node, :step4})
         |> History.push(
-          {:add_node, %Node{id: :new_step4, container: S.DummyStep4, inputs: [:in], outputs: [:out1, :out2]}}
+          {:add_node,
+           %Node{id: :new_step4, container: S.DummyStep4, inputs: [:in], outputs: [:out1, :out2]}}
         )
         |> History.push({:add_edge, Edge.new(:step3, :out, :new_step4, :in)})
         |> History.push({:remove_edge, Edge.new(:step3, :out, :new_step4, :in)})
         |> History.push({:add_edge, Edge.new(:step3, :out, :new_step4, :in)})
-        |> History.push({:update_node, :step2, &(&1)})
+        |> History.push({:update_node, :step2, & &1})
 
       assert {%Quincunx.Topology.Graph{}, %{}} =
                resolve(records, build_finin_and_fanout_dag())

@@ -14,13 +14,16 @@ defmodule Quincunx.Editor.SegmentTest do
 
   describe "Attach history operation" do
     test "apply_operarion, undo and redo" do
-      new_seg = new("SessionID", Graph.new())
-      |> apply_operation({:new_intervention, {:port, :foo, :bar}, :override, "Aha!!"})
+      new_seg =
+        new("SessionID", Graph.new())
+        |> apply_operation({:new_intervention, {:port, :foo, :bar}, :override, "Aha!!"})
 
       {new_seg, _op} = undo(new_seg)
       {new_seg, _op} = redo(new_seg)
 
-      assert new_seg.history.undo_stack == [{:new_intervention, {:port, :foo, :bar}, :override, "Aha!!"}]
+      assert new_seg.history.undo_stack == [
+               {:new_intervention, {:port, :foo, :bar}, :override, "Aha!!"}
+             ]
     end
   end
 
@@ -33,9 +36,10 @@ defmodule Quincunx.Editor.SegmentTest do
     end
 
     test "inject_graph_and_interventions/3 will resume history if set clear_history false" do
-      new_seg = new("SessionID", Graph.new())
-      |> apply_operation({:new_intervention, {:port, :foo, :bar}, :override, "Aha!!"})
-      |> inject_graph_and_interventions(build_finin_and_fanout_dag(), %{}, false)
+      new_seg =
+        new("SessionID", Graph.new())
+        |> apply_operation({:new_intervention, {:port, :foo, :bar}, :override, "Aha!!"})
+        |> inject_graph_and_interventions(build_finin_and_fanout_dag(), %{}, false)
 
       refute new_seg.history == %History{}
     end

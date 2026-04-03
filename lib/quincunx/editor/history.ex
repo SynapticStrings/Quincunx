@@ -21,7 +21,8 @@ defmodule Quincunx.Editor.History do
 
     @typedoc "Record the data intervention operations."
     @type data_interventions ::
-            {:set_intervention, PortRef.t(), OrchidIntervention.intervention_type(), OrchidIntervention.payload()}
+            {:set_intervention, PortRef.t(), OrchidIntervention.intervention_type(),
+             OrchidIntervention.payload()}
             | {:clear_intervention, PortRef.t()}
             | nil
 

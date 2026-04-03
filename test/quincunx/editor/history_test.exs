@@ -40,14 +40,15 @@ defmodule Quincunx.Editor.HistoryTest do
 
   describe "Do, Undo and Redo" do
     test "op will drop out(copy)" do
-      record = new()
-       |> push({:add_node, %Node{id: :node_1}})
-       |> push({:add_node, %Node{id: :node_2}})
-       |> push({:add_edge, Edge.new(:node_1, :out, :node_2, :in)})
-       |> push({:set_intervention, {:foo, :node_1, :in}, :input, "Aha!"})
+      record =
+        new()
+        |> push({:add_node, %Node{id: :node_1}})
+        |> push({:add_node, %Node{id: :node_2}})
+        |> push({:add_edge, Edge.new(:node_1, :out, :node_2, :in)})
+        |> push({:set_intervention, {:foo, :node_1, :in}, :input, "Aha!"})
 
-       assert {undid, {:set_intervention, {:foo, :node_1, :in}, _, _}} = undo(record)
-       assert {^record, _} = redo(undid)
+      assert {undid, {:set_intervention, {:foo, :node_1, :in}, _, _}} = undo(record)
+      assert {^record, _} = redo(undid)
     end
 
     test "blank history will return nil" do

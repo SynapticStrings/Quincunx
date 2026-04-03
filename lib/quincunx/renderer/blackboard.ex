@@ -37,7 +37,7 @@ defmodule Quincunx.Renderer.Blackboard do
   @spec fetch_contents(t(), Segment.id()) :: %{addr() => Orchid.Param.t()}
   def fetch_via_session(%__MODULE__{memory: mem} = blackboard, session_id) do
     Map.keys(mem)
-    |> Enum.filter(fn {ssid, _} ->session_id == ssid end)
+    |> Enum.filter(fn {ssid, _} -> session_id == ssid end)
     |> then(&fetch_contents(blackboard, &1))
   end
 end

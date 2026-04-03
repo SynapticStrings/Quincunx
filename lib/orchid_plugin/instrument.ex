@@ -29,7 +29,8 @@ defmodule OrchidPlugin.Instrument do
 
     clean_orchid_opts ++
       [
-        baggage: Map.merge(old_baggage, %{symbiont_mapper: symbiont_mapper, scope_id: session_id}),
+        baggage:
+          Map.merge(old_baggage, %{symbiont_mapper: symbiont_mapper, scope_id: session_id}),
         global_hooks_stack: old_hooks_stack ++ [OrchidSymbiont.Hooks.Injector]
       ]
   end

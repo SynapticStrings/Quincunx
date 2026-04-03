@@ -1,4 +1,4 @@
-defmodule Quincunx.Session.SegmentManager do
+defmodule Quincunx.Editor.SegmentManager do
   @moduledoc """
   Owns the Segment collection, grouping, inter-segment dependencies, and dirty tracking.
 
@@ -36,26 +36,37 @@ defmodule Quincunx.Session.SegmentManager do
   ## Session CRUD
 
   # add_segment/3
-  def add_segment(%__MODULE__{} = mgr, %Segment{id: id} = seg) do
-    if Map.has_key?(mgr.segments, id) do
+  def add_segment(%__MODULE__{} = manager, %Segment{id: id} = seg) do
+    if Map.has_key?(manager.segments, id) do
       {:error, :already_exists}
     else
       {:ok,
        %{
-         mgr
-         | segments: Map.put(mgr.segments, id, seg),
-           dep_graph: LiteGraph.add_node(mgr.dep_graph, id),
-           dirty: MapSet.put(mgr.dirty, id)
+         manager
+         | segments: Map.put(manager.segments, id, seg),
+           segment_tags: Map.put(manager.segment_tags, id, MapSet.new()),
+           dep_graph: LiteGraph.add_node(manager.dep_graph, id),
+           dirty: MapSet.put(manager.dirty, id)
        }}
     end
   end
 
   # remove_segment/2
-  def remove_segment(%__MODULE__{} = mgr, seg_id) do
-    %{mgr |
-      segments: Map.delete(mgr.segments, seg_id),
-      dep_graph: LiteGraph.remove_node(mgr.dep_graph, seg_id),
-      dirty: MapSet.delete(mgr.dirty, seg_id)
+  def remove_segment(%__MODULE__{} = manager, seg_id) do
+    tags = Map.get(manager.segment_tags, seg_id, MapSet.new())
+
+    new_tag_index =
+      Enum.reduce(tags, manager.tag_index, fn tag, acc ->
+        Map.update(acc, tag, MapSet.new(), &MapSet.delete(&1, seg_id))
+      end)
+
+    %{
+      manager
+      | segments: Map.delete(manager.segments, seg_id),
+        segment_tags: Map.delete(manager.segment_tags, seg_id),
+        tag_index: new_tag_index,
+        dep_graph: LiteGraph.remove_node(manager.dep_graph, seg_id),
+        dirty: MapSet.delete(manager.dirty, seg_id)
     }
   end
 
@@ -81,10 +92,46 @@ defmodule Quincunx.Session.SegmentManager do
 
   # apply_tag/3
   # (manager, exists_or_not_tag, exists_segment_ids)
+  def apply_tag(%__MODULE__{} = manager, tag, seg_ids) do
+    Enum.reduce(seg_ids, manager, fn seg_id, acc ->
+      if Map.has_key?(acc.segments, seg_id) do
+        %{
+          acc
+          | segment_tags:
+              Map.update(acc.segment_tags, seg_id, MapSet.new([tag]), &MapSet.put(&1, tag)),
+            tag_index:
+              Map.update(acc.tag_index, tag, MapSet.new([seg_id]), &MapSet.put(&1, seg_id))
+        }
+      else
+        acc
+      end
+    end)
+  end
 
   # divest_tag/2
+  def divest_tag(%__MODULE__{} = manager, tag, seg_ids) do
+    Enum.reduce(seg_ids, manager, fn seg_id, acc ->
+      %{
+        acc
+        | segment_tags:
+            Map.update(acc.segment_tags, seg_id, MapSet.new(), &MapSet.delete(&1, tag)),
+          tag_index: Map.update(acc.tag_index, tag, MapSet.new(), &MapSet.delete(&1, seg_id))
+      }
+    end)
+  end
 
   # query_tag
+  # query_by_tags/3
+  def query_by_tags(%__MODULE__{} = manager, tags, mode \\ :union) when is_list(tags) do
+    new_tags =
+      tags
+      |> Enum.map(&Map.get(manager.tag_index, &1, MapSet.new()))
+
+    case mode do
+      :union -> Enum.reduce(new_tags, &MapSet.union/2)
+      :intersection -> Enum.reduce(new_tags, &MapSet.intersection/2)
+    end
+  end
 
   ## Complex but Useful query
 
@@ -94,22 +141,136 @@ defmodule Quincunx.Session.SegmentManager do
 
   # Mono
 
-  # add/remove
+  def add_dependency(%__MODULE__{} = manager, from_seg_id, to_seg_id) do
+    new_graph = LiteGraph.add_edge(manager.dep_graph, from_seg_id, to_seg_id)
+
+    manager = %{manager | dep_graph: new_graph}
+
+    if MapSet.member?(manager.dirty, from_seg_id) do
+      propagate_dirty(manager, [to_seg_id])
+    else
+      manager
+    end
+  end
+
+  def remove_dependency(%__MODULE__{} = manager, from_seg_id, to_seg_id) do
+    new_graph = LiteGraph.remove_edge(manager.dep_graph, from_seg_id, to_seg_id)
+
+    manager = %{manager | dep_graph: new_graph}
+
+    if MapSet.member?(manager.dirty, from_seg_id) do
+      propagate_dirty(manager, [to_seg_id])
+    else
+      manager
+    end
+  end
 
   # tag X dependency
 
-  # add_patch/remove_patch
+  def add_tag_dependency(
+        %__MODULE__{} = manager,
+        {source_tag, source_mode},
+        {target_tag, target_mode}
+      ) do
+    sources = query_by_tags(manager, List.wrap(source_tag), source_mode)
+    targets = query_by_tags(manager, List.wrap(target_tag), target_mode)
+
+    # apply Cartesian product
+    Enum.reduce(sources, manager, fn src_id, acc_manager ->
+      Enum.reduce(targets, acc_manager, fn tgt_id, inner_manager ->
+        add_dependency(inner_manager, src_id, tgt_id)
+      end)
+    end)
+  end
+
+  def remove_tag_dependency(
+        %__MODULE__{} = manager,
+        {source_tag, source_mode},
+        {target_tag, target_mode}
+      ) do
+    sources = query_by_tags(manager, List.wrap(source_tag), source_mode)
+    targets = query_by_tags(manager, List.wrap(target_tag), target_mode)
+
+    # apply Cartesian product
+    Enum.reduce(sources, manager, fn src_id, acc_manager ->
+      Enum.reduce(targets, acc_manager, fn tgt_id, inner_manager ->
+        remove_dependency(inner_manager, src_id, tgt_id)
+      end)
+    end)
+  end
 
   ## Operations(with Dirty Propogation) & Dispatch
 
   # apply_operation/3
+  def apply_operation(%__MODULE__{} = manager, seg_id, op) do
+    case Map.fetch(manager.segments, seg_id) do
+      {:ok, seg} ->
+        Segment.apply_operation(seg, op)
+        |> then(&op_with_dirty_propogation(manager, seg_id, &1))
+
+      :error ->
+        manager
+    end
+  end
+
   # undo/2
+  def undo(%__MODULE__{} = manager, seg_id) do
+    case Map.fetch(manager.segments, seg_id) do
+      {:ok, seg} ->
+        op_with_dirty_propogation(manager, seg_id, Segment.undo(seg))
+
+      :error ->
+        manager
+    end
+  end
+
   # redo/2
+  def redo(%__MODULE__{} = manager, seg_id) do
+    case Map.fetch(manager.segments, seg_id) do
+      {:ok, seg} ->
+        op_with_dirty_propogation(manager, seg_id, Segment.redo(seg))
+
+      :error ->
+        manager
+    end
+  end
+
+  defp op_with_dirty_propogation(manager, seg_id, new_seg) do
+    manager
+    |> put_in([Access.key(:segments), seg_id], new_seg)
+    |> propagate_dirty([seg_id])
+  end
 
   # grouped_dispatch_order/2 (manager, condition)
+  def grouped_dispatch_order(%__MODULE__{} = mgr, filter_tags \\ []) do
+    target_ids =
+      if filter_tags == [] do
+        mgr.dirty
+      else
+        query_by_tags(mgr, filter_tags, :intersection)
+      end
+
+    if MapSet.size(target_ids) == 0 do
+      {:ok, []}
+    else
+      LiteGraph.topological_sort(mgr.dep_graph)
+    end
+  end
+
+  def clear_dirty(%__MODULE__{} = mgr, rendered_seg_ids) do
+    %{mgr | dirty: MapSet.difference(mgr.dirty, MapSet.new(rendered_seg_ids))}
+  end
 
   ## Helper
 
   # dump all data
   def dump(%__MODULE__{} = manager), do: manager
+
+  ## Private
+
+  defp propagate_dirty(%__MODULE__{} = manager, initial_dirty_ids) do
+    affected_ids = LiteGraph.dependents(manager.dep_graph, initial_dirty_ids)
+
+    %{manager | dirty: MapSet.union(manager.dirty, MapSet.new(affected_ids))}
+  end
 end

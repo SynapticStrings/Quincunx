@@ -44,21 +44,20 @@ defmodule Quincunx.Editor.Segment do
 
   @spec inject_graph_and_interventions(t(), Graph.t(), map(), boolean()) :: t()
   def inject_graph_and_interventions(
-      %__MODULE__{} = segment,
-      %Graph{} = graph,
-      data_interventions, clear_history \\ true)
-  do
+        %__MODULE__{} = segment,
+        %Graph{} = graph,
+        data_interventions,
+        clear_history \\ true
+      ) do
     # Combine with cache/snapshot
-    history = if clear_history do
-      %History{}
-    else
-      segment.history
-    end
-    %{segment |
-        graph: graph,
-        data_interventions: data_interventions,
-        history: history
-      }
+    history =
+      if clear_history do
+        %History{}
+      else
+        segment.history
+      end
+
+    %{segment | graph: graph, data_interventions: data_interventions, history: history}
   end
 
   @spec apply_operation(t(), History.Operation.t()) :: t()

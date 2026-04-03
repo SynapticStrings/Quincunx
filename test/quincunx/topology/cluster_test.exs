@@ -18,13 +18,14 @@ defmodule Quincunx.Topology.ClusterTest do
 
   describe "apply node_colors" do
     test "set default color when set declaration", %{sorted_graph: nodes, edges: edges} do
-      assert [:default_cluster] == paint_graph(nodes, edges, %Cluster{}) |> Map.values() |> Enum.uniq()
+      assert [:default_cluster] ==
+               paint_graph(nodes, edges, %Cluster{}) |> Map.values() |> Enum.uniq()
     end
 
     # 有声明是什么
     test "set new color when has node_colors", %{sorted_graph: nodes, edges: edges} do
-
-      assert paint_graph(nodes, edges, %Cluster{node_colors: %{step4: :foo}}) |> Map.get(:step4) == :foo
+      assert paint_graph(nodes, edges, %Cluster{node_colors: %{step4: :foo}}) |> Map.get(:step4) ==
+               :foo
     end
 
     # 有声明的下游是什么

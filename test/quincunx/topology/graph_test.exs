@@ -42,7 +42,8 @@ defmodule Quincunx.Topology.GraphTest do
 
     test "Quincunx.Topology.Graph.add_node/2" do
       graph =
-        new() |> add_node(%Node{id: :node_1, container: DummyStep1, inputs: [:in], outputs: [:out]})
+        new()
+        |> add_node(%Node{id: :node_1, container: DummyStep1, inputs: [:in], outputs: [:out]})
 
       assert get_in(graph.nodes.node_1.container) == DummyStep1
     end
@@ -67,7 +68,17 @@ defmodule Quincunx.Topology.GraphTest do
 
       graph = remove_node(graph, :node_a)
 
-      assert graph.nodes == %{:node_b => %Node{id: :node_b, container: DummyStep2, inputs: [:mid], outputs: [:out], options: [], extra: %{}}}
+      assert graph.nodes == %{
+               :node_b => %Node{
+                 id: :node_b,
+                 container: DummyStep2,
+                 inputs: [:mid],
+                 outputs: [:out],
+                 options: [],
+                 extra: %{}
+               }
+             }
+
       assert graph.edges == MapSet.new()
     end
 
@@ -83,7 +94,15 @@ defmodule Quincunx.Topology.GraphTest do
     test "update_node/2" do
       graph = build_graph_v1()
 
-      graph = update_node(graph, :node_b, %Node{id: :node_b, container: DummyStep1, inputs: [:mid], outputs: [:out], options: [], extra: %{}})
+      graph =
+        update_node(graph, :node_b, %Node{
+          id: :node_b,
+          container: DummyStep1,
+          inputs: [:mid],
+          outputs: [:out],
+          options: [],
+          extra: %{}
+        })
 
       assert get_in(graph.nodes.node_b.container) == DummyStep1
 
@@ -91,13 +110,15 @@ defmodule Quincunx.Topology.GraphTest do
 
       assert get_in(graph.nodes.node_b.container) == DummyStep2
 
-      new_graph = update_node(graph, :node_c, fn old_node -> %{old_node | container: DummyStep2} end)
+      new_graph =
+        update_node(graph, :node_c, fn old_node -> %{old_node | container: DummyStep2} end)
 
       assert graph.nodes == new_graph.nodes
     end
 
     test "remove_edge/2" do
       edge = Edge.new(:a, :out, :b, :in)
+
       graph =
         new()
         |> add_node(%Node{id: :a, container: DummyStep1, inputs: [:in], outputs: [:out]})
@@ -150,9 +171,17 @@ defmodule Quincunx.Topology.GraphTest do
       graph1 = build_graph_v1()
 
       # Mock redo & undo
-      graph2 = build_graph_v1()
-      |> update_node(:node_b, %Node{id: :node_b, container: DummyStep1, inputs: [:mid], outputs: [:out], options: [], extra: %{}})
-      |> update_node(:node_b, fn old_node -> %{old_node | container: DummyStep2} end)
+      graph2 =
+        build_graph_v1()
+        |> update_node(:node_b, %Node{
+          id: :node_b,
+          container: DummyStep1,
+          inputs: [:mid],
+          outputs: [:out],
+          options: [],
+          extra: %{}
+        })
+        |> update_node(:node_b, fn old_node -> %{old_node | container: DummyStep2} end)
 
       assert same?(graph1, graph2)
     end
@@ -175,7 +204,9 @@ defmodule Quincunx.Topology.GraphTest do
       assert idx.(:step3) < idx.(:step4)
       # The first two can be in any order, but they must both appear before step3.
       assert order |> Enum.take(2) |> Enum.sort() == [:step1, :step2]
-      assert order == [:step1, :step2, :step3, :step4] or order == [:step2, :step1, :step3, :step4]
+
+      assert order == [:step1, :step2, :step3, :step4] or
+               order == [:step2, :step1, :step3, :step4]
     end
 
     test "topological_sort returns error on cycle" do

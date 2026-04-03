@@ -17,7 +17,8 @@ defmodule Quincunx.Renderer.Worker do
   @spec run(Segment.id(), RecipeBundle.t(), Blackboard.t(), Configurator.t()) ::
           {:ok, Segment.id(), map()} | {:error, term()}
   def run(seg_id, %RecipeBundle{} = bundle, %Blackboard{} = blackboard, %Configurator{} = ctx) do
-    intervention_by_orchid_key = Map.new(bundle.interventions, fn {k, v} -> {PortRef.to_orchid_key(k), v} end)
+    intervention_by_orchid_key =
+      Map.new(bundle.interventions, fn {k, v} -> {PortRef.to_orchid_key(k), v} end)
 
     dynamic_inputs = resolve_dependencies(seg_id, bundle, blackboard, intervention_by_orchid_key)
 

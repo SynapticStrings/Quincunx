@@ -22,9 +22,10 @@ defmodule Quincunx.Topology.LiteGraphTest do
     end
 
     test "adding an existing node does not duplicate adjacency entries" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:a)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:a)
 
       assert MapSet.size(g.nodes) == 1
       assert g.in_adj[:a] == []
@@ -34,12 +35,14 @@ defmodule Quincunx.Topology.LiteGraphTest do
 
   describe "remove_node/2" do
     setup do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
-          |> LiteGraph.add_node(:c)
-          |> LiteGraph.add_edge(:a, :b)
-          |> LiteGraph.add_edge(:b, :c)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+        |> LiteGraph.add_node(:c)
+        |> LiteGraph.add_edge(:a, :b)
+        |> LiteGraph.add_edge(:b, :c)
+
       {:ok, graph: g}
     end
 
@@ -67,9 +70,11 @@ defmodule Quincunx.Topology.LiteGraphTest do
 
   describe "add_edge/2" do
     setup do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+
       {:ok, graph: g}
     end
 
@@ -81,9 +86,10 @@ defmodule Quincunx.Topology.LiteGraphTest do
     end
 
     test "adding duplicate edge leads to duplicate entries in adjacency lists", %{graph: g} do
-      g2 = g
-          |> LiteGraph.add_edge(:a, :b)
-          |> LiteGraph.add_edge(:a, :b)
+      g2 =
+        g
+        |> LiteGraph.add_edge(:a, :b)
+        |> LiteGraph.add_edge(:a, :b)
 
       # edges set remains a single entry
       assert MapSet.size(g2.edges) == 1
@@ -107,10 +113,12 @@ defmodule Quincunx.Topology.LiteGraphTest do
 
   describe "remove_edge/2" do
     setup do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
-          |> LiteGraph.add_edge(:a, :b)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+        |> LiteGraph.add_edge(:a, :b)
+
       {:ok, graph: g}
     end
 
@@ -127,9 +135,12 @@ defmodule Quincunx.Topology.LiteGraphTest do
     end
 
     test "removing only one instance when duplicate edges exist", %{graph: g} do
-      g2 = g
-          |> LiteGraph.add_edge(:a, :b)   # duplicate
-          |> LiteGraph.remove_edge(:a, :b)
+      g2 =
+        g
+        # duplicate
+        |> LiteGraph.add_edge(:a, :b)
+        |> LiteGraph.remove_edge(:a, :b)
+
       # edges set is empty (since duplicate didn't create another set entry)
       assert MapSet.size(g2.edges) == 0
       # adjacency lists lose one occurrence but still have the other
@@ -149,23 +160,25 @@ defmodule Quincunx.Topology.LiteGraphTest do
     end
 
     test "orders nodes correctly in a DAG" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
-          |> LiteGraph.add_node(:c)
-          |> LiteGraph.add_edge(:a, :b)
-          |> LiteGraph.add_edge(:b, :c)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+        |> LiteGraph.add_node(:c)
+        |> LiteGraph.add_edge(:a, :b)
+        |> LiteGraph.add_edge(:b, :c)
 
       assert LiteGraph.topological_sort(g) == {:ok, [:a, :b, :c]}
     end
 
     test "handles multiple roots" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
-          |> LiteGraph.add_node(:c)
-          |> LiteGraph.add_edge(:a, :c)
-          |> LiteGraph.add_edge(:b, :c)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+        |> LiteGraph.add_node(:c)
+        |> LiteGraph.add_edge(:a, :c)
+        |> LiteGraph.add_edge(:b, :c)
 
       {:ok, order} = LiteGraph.topological_sort(g)
       # roots :a and :b can appear in any order before :c
@@ -173,34 +186,38 @@ defmodule Quincunx.Topology.LiteGraphTest do
     end
 
     test "detects a simple cycle" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
-          |> LiteGraph.add_edge(:a, :b)
-          |> LiteGraph.add_edge(:b, :a)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+        |> LiteGraph.add_edge(:a, :b)
+        |> LiteGraph.add_edge(:b, :a)
 
       assert LiteGraph.topological_sort(g) == {:error, :cycle_detected}
     end
 
     test "detects cycle with more nodes" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
-          |> LiteGraph.add_node(:c)
-          |> LiteGraph.add_edge(:a, :b)
-          |> LiteGraph.add_edge(:b, :c)
-          |> LiteGraph.add_edge(:c, :a)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+        |> LiteGraph.add_node(:c)
+        |> LiteGraph.add_edge(:a, :b)
+        |> LiteGraph.add_edge(:b, :c)
+        |> LiteGraph.add_edge(:c, :a)
 
       assert LiteGraph.topological_sort(g) == {:error, :cycle_detected}
     end
 
     test "duplicate edges affect indegree count and break topological sort" do
       # Demonstrates the duplicate-edge bug: indegree becomes 2 for :b
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
-          |> LiteGraph.add_edge(:a, :b)
-          |> LiteGraph.add_edge(:a, :b)   # duplicate
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+        |> LiteGraph.add_edge(:a, :b)
+        # duplicate
+        |> LiteGraph.add_edge(:a, :b)
 
       assert LiteGraph.topological_sort(g) == {:ok, [:a, :b]}
     end
@@ -213,36 +230,41 @@ defmodule Quincunx.Topology.LiteGraphTest do
     end
 
     test "returns direct and transitive downstream nodes" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
-          |> LiteGraph.add_node(:c)
-          |> LiteGraph.add_node(:d)
-          |> LiteGraph.add_edge(:a, :b)
-          |> LiteGraph.add_edge(:b, :c)
-          |> LiteGraph.add_edge(:a, :d)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+        |> LiteGraph.add_node(:c)
+        |> LiteGraph.add_node(:d)
+        |> LiteGraph.add_edge(:a, :b)
+        |> LiteGraph.add_edge(:b, :c)
+        |> LiteGraph.add_edge(:a, :d)
 
       assert LiteGraph.dependents(g, :a) == MapSet.new([:b, :c, :d])
     end
 
     test "excludes the node itself" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_edge(:a, :a)   # self-loop (allowed by data model)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        # self-loop (allowed by data model)
+        |> LiteGraph.add_edge(:a, :a)
+
       # dependents should not include :a
       assert LiteGraph.dependents(g, :a) == MapSet.new()
     end
 
     test "handles diamond-shaped DAG" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
-          |> LiteGraph.add_node(:c)
-          |> LiteGraph.add_node(:d)
-          |> LiteGraph.add_edge(:a, :b)
-          |> LiteGraph.add_edge(:a, :c)
-          |> LiteGraph.add_edge(:b, :d)
-          |> LiteGraph.add_edge(:c, :d)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+        |> LiteGraph.add_node(:c)
+        |> LiteGraph.add_node(:d)
+        |> LiteGraph.add_edge(:a, :b)
+        |> LiteGraph.add_edge(:a, :c)
+        |> LiteGraph.add_edge(:b, :d)
+        |> LiteGraph.add_edge(:c, :d)
 
       assert LiteGraph.dependents(g, :a) == MapSet.new([:b, :c, :d])
     end
@@ -255,88 +277,99 @@ defmodule Quincunx.Topology.LiteGraphTest do
     end
 
     test "returns direct and transitive upstream nodes" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
-          |> LiteGraph.add_node(:c)
-          |> LiteGraph.add_node(:d)
-          |> LiteGraph.add_edge(:a, :b)
-          |> LiteGraph.add_edge(:b, :c)
-          |> LiteGraph.add_edge(:a, :d)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+        |> LiteGraph.add_node(:c)
+        |> LiteGraph.add_node(:d)
+        |> LiteGraph.add_edge(:a, :b)
+        |> LiteGraph.add_edge(:b, :c)
+        |> LiteGraph.add_edge(:a, :d)
 
       assert LiteGraph.dependencies(g, :c) == MapSet.new([:a, :b])
     end
 
     test "excludes the node itself" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_edge(:a, :a)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_edge(:a, :a)
+
       assert LiteGraph.dependencies(g, :a) == MapSet.new()
     end
   end
 
   describe "roots/1" do
     test "returns all nodes with no incoming edges" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
-          |> LiteGraph.add_node(:c)
-          |> LiteGraph.add_edge(:a, :b)
-          |> LiteGraph.add_edge(:b, :c)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+        |> LiteGraph.add_node(:c)
+        |> LiteGraph.add_edge(:a, :b)
+        |> LiteGraph.add_edge(:b, :c)
 
       roots = LiteGraph.roots(g)
       assert Enum.sort(roots) == [:a]
     end
 
     test "returns multiple roots" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
-          |> LiteGraph.add_node(:c)
-          |> LiteGraph.add_edge(:a, :c)
-          |> LiteGraph.add_edge(:b, :c)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+        |> LiteGraph.add_node(:c)
+        |> LiteGraph.add_edge(:a, :c)
+        |> LiteGraph.add_edge(:b, :c)
 
       roots = LiteGraph.roots(g)
       assert Enum.sort(roots) == [:a, :b]
     end
 
     test "returns all nodes when graph has no edges" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+
       assert Enum.sort(LiteGraph.roots(g)) == [:a, :b]
     end
   end
 
   describe "leaves/1" do
     test "returns all nodes with no outgoing edges" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
-          |> LiteGraph.add_node(:c)
-          |> LiteGraph.add_edge(:a, :b)
-          |> LiteGraph.add_edge(:b, :c)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+        |> LiteGraph.add_node(:c)
+        |> LiteGraph.add_edge(:a, :b)
+        |> LiteGraph.add_edge(:b, :c)
 
       leaves = LiteGraph.leaves(g)
       assert leaves == [:c]
     end
 
     test "returns multiple leaves" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
-          |> LiteGraph.add_node(:c)
-          |> LiteGraph.add_edge(:a, :b)
-          |> LiteGraph.add_edge(:a, :c)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+        |> LiteGraph.add_node(:c)
+        |> LiteGraph.add_edge(:a, :b)
+        |> LiteGraph.add_edge(:a, :c)
 
       leaves = LiteGraph.leaves(g)
       assert Enum.sort(leaves) == [:b, :c]
     end
 
     test "returns all nodes when graph has no edges" do
-      g = LiteGraph.new()
-          |> LiteGraph.add_node(:a)
-          |> LiteGraph.add_node(:b)
+      g =
+        LiteGraph.new()
+        |> LiteGraph.add_node(:a)
+        |> LiteGraph.add_node(:b)
+
       assert Enum.sort(LiteGraph.leaves(g)) == [:a, :b]
     end
   end
