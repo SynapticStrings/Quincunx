@@ -12,11 +12,12 @@ defmodule Quincunx.Editor.SegmentManager do
   alias Quincunx.Editor.Segment
   # alias Quincunx.Editor.History
   alias Quincunx.Topology.LiteGraph
+  alias Quincunx.Editor.SegmentStore
 
   @type tag :: atom() | String.t()
 
   @type t :: %__MODULE__{
-          segments: %{Segment.id() => Segment.t()},
+          segments: SegmentStore.t(),
           # Forward Index => Segment's tag(s)
           segment_tags: %{Segment.id() => MapSet.t(tag())},
           # Backward Index => Tag include segments
@@ -36,14 +37,12 @@ defmodule Quincunx.Editor.SegmentManager do
   ## Session CRUD
 
   # add_segment/3
-  def add_segment(%__MODULE__{} = manager, %Segment{id: id} = seg) do
-    if Map.has_key?(manager.segments, id) do
-      {:error, :already_exists}
-    else
+  def add_segment(%__MODULE__{} = manager, %Segment{id: id} = segment) do
+    with {:ok, new_segments} <- SegmentStore.add_segment(manager.segments, segment) do
       {:ok,
        %{
          manager
-         | segments: Map.put(manager.segments, id, seg),
+         | segments: new_segments,
            segment_tags: Map.put(manager.segment_tags, id, MapSet.new()),
            dep_graph: LiteGraph.add_node(manager.dep_graph, id),
            dirty: MapSet.put(manager.dirty, id)
@@ -53,28 +52,30 @@ defmodule Quincunx.Editor.SegmentManager do
 
   # remove_segment/2
   def remove_segment(%__MODULE__{} = manager, seg_id) do
-    tags = Map.get(manager.segment_tags, seg_id, MapSet.new())
+    with {:ok, new_segments} <- SegmentStore.remove_segment(manager.segment_tags, seg_id) do
+      tags = Map.get(manager.segment_tags, seg_id, MapSet.new())
 
-    new_tag_index =
-      Enum.reduce(tags, manager.tag_index, fn tag, acc ->
-        Map.update(acc, tag, MapSet.new(), &MapSet.delete(&1, seg_id))
-      end)
+      new_tag_index =
+        Enum.reduce(tags, manager.tag_index, fn tag, acc ->
+          Map.update(acc, tag, MapSet.new(), &MapSet.delete(&1, seg_id))
+        end)
 
-    %{
-      manager
-      | segments: Map.delete(manager.segments, seg_id),
-        segment_tags: Map.delete(manager.segment_tags, seg_id),
-        tag_index: new_tag_index,
-        dep_graph: LiteGraph.remove_node(manager.dep_graph, seg_id),
-        dirty: MapSet.delete(manager.dirty, seg_id)
-    }
+      %{
+        manager
+        | segments: new_segments,
+          segment_tags: Map.delete(manager.segment_tags, seg_id),
+          tag_index: new_tag_index,
+          dep_graph: LiteGraph.remove_node(manager.dep_graph, seg_id),
+          dirty: MapSet.delete(manager.dirty, seg_id)
+      }
+    end
   end
 
   # get_segment/2
   def get_segment(%__MODULE__{segments: segs}, seg_id) do
     Map.fetch(segs, seg_id)
     |> case do
-      :error -> {:error, :segement_not_exists}
+      :error -> {:error, :not_exists}
       ok_seg -> ok_seg
     end
   end
@@ -239,14 +240,14 @@ defmodule Quincunx.Editor.SegmentManager do
 
   # grouped_dispatch_order/2 (manager, condition)
   def grouped_dispatch_order(%__MODULE__{} = mgr, filter_tags \\ []) do
-    initial_targets  =
+    initial_targets =
       if filter_tags == [] do
         mgr.dirty
       else
         query_by_tags(mgr, filter_tags, :intersection)
       end
 
-    if MapSet.size(initial_targets ) == 0 do
+    if MapSet.size(initial_targets) == 0 do
       {:ok, []}
     else
       required_set =

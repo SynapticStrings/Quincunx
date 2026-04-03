@@ -15,6 +15,7 @@ defmodule Quincunx.Editor.Segment do
 
   @type t :: %__MODULE__{
           id: id(),
+          name: binary(),
           graph: Graph.t(Orchid.Step.implementation()),
           cluster: Cluster.t(),
           history: History.t(),
@@ -24,6 +25,7 @@ defmodule Quincunx.Editor.Segment do
 
   defstruct [
     :id,
+    name: "",
     graph: %Graph{},
     cluster: %Cluster{},
     history: %History{},
@@ -40,6 +42,11 @@ defmodule Quincunx.Editor.Segment do
       cluster: cluster_declara,
       history: History.new()
     }
+  end
+
+  @spec update_name(t(), String.t()) :: t()
+  def update_name(segment, name) do
+    %{segment | name: name}
   end
 
   @spec inject_graph_and_interventions(t(), Graph.t(), map(), boolean()) :: t()
