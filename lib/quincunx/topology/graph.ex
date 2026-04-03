@@ -77,36 +77,63 @@ defmodule Quincunx.Topology.Graph do
   # in/out edge => %{Node.id() => [Edge.t()]}
   @type t(container_type) :: %__MODULE__{
           nodes: %{Node.id() => Node.t(container_type)},
-          edges: MapSet.t(Edge.t())
+          edges: MapSet.t(Edge.t()),
+          in_edges: %{Node.id() => [Edge.t()]},
+          out_edges: %{Node.id() => [Edge.t()]}
         }
   @type t() :: t(term())
-  defstruct [:nodes, :edges]
+  defstruct [:nodes, :edges, :in_edges, :out_edges]
 
   def new,
     do: %__MODULE__{
       nodes: %{},
-      edges: MapSet.new()
+      edges: MapSet.new(),
+      in_edges: %{},
+      out_edges: %{}
     }
 
   # https://elixirforum.com/t/what-is-a-good-way-to-compare-structs/59303
   def same?(graph1, graph2), do: graph1 == graph2
 
   def add_node(%__MODULE__{nodes: old_nodes} = graph, %Node{id: node_id} = node) do
-    %{graph | nodes: Map.put(old_nodes, node_id, node)}
+    %{
+      graph
+      | nodes: Map.put(old_nodes, node_id, node),
+        in_edges: Map.put_new(graph.in_edges, node_id, []),
+        out_edges: Map.put_new(graph.out_edges, node_id, [])
+    }
   end
 
-  def remove_node(%__MODULE__{nodes: nodes, edges: edges}, node_id) do
+  def remove_node(%__MODULE__{nodes: nodes} = graph, node_id) do
     case nodes[node_id] do
       nil ->
-        %__MODULE__{nodes: nodes, edges: edges}
+        graph
 
       _ ->
-        %__MODULE__{
-          nodes: Map.delete(nodes, node_id),
-          edges:
-            edges
-            |> Enum.reject(&(&1.from_node == node_id or &1.to_node == node_id))
-            |> Enum.into(%MapSet{})
+        in_edges_to_remove = Map.get(graph.in_edges, node_id, [])
+        out_edges_to_remove = Map.get(graph.out_edges, node_id, [])
+        edges_to_remove = in_edges_to_remove ++ out_edges_to_remove
+
+        new_edges = Enum.reduce(edges_to_remove, graph.edges, &MapSet.delete(&2, &1))
+
+        new_in_edges =
+          Enum.reduce(out_edges_to_remove, graph.in_edges, fn edge, acc ->
+            Map.update!(acc, edge.to_node, &List.delete(&1, edge))
+          end)
+          |> Map.delete(node_id)
+
+        new_out_edges =
+          Enum.reduce(in_edges_to_remove, graph.out_edges, fn edge, acc ->
+            Map.update!(acc, edge.from_node, &List.delete(&1, edge))
+          end)
+          |> Map.delete(node_id)
+
+        %{
+          graph
+          | nodes: Map.delete(graph.nodes, node_id),
+            edges: new_edges,
+            in_edges: new_in_edges,
+            out_edges: new_out_edges
         }
     end
   end
@@ -132,45 +159,51 @@ defmodule Quincunx.Topology.Graph do
   end
 
   def add_edge(%__MODULE__{} = graph, edge) do
-    %{graph | edges: MapSet.put(graph.edges, edge)}
+    %{
+      graph
+      | edges: MapSet.put(graph.edges, edge),
+        in_edges: Map.update(graph.in_edges, edge.to_node, [edge], &[edge | &1]),
+        out_edges: Map.update(graph.out_edges, edge.from_node, [edge], &[edge | &1])
+    }
   end
 
   def remove_edge(%__MODULE__{edges: edges} = graph, edge) do
-    %{graph | edges: MapSet.delete(edges, edge)}
+    %{
+      graph
+      | edges: MapSet.delete(edges, edge),
+        in_edges: Map.update(graph.in_edges, edge.to_node, [], &List.delete(&1, edge)),
+        out_edges: Map.update(graph.out_edges, edge.from_node, [], &List.delete(&1, edge))
+    }
   end
 
   @doc "Get all input edges pointing to a given node"
   @spec get_in_edges(t(), Node.id()) :: [Edge.t()]
   def get_in_edges(%__MODULE__{} = graph, node_id) do
-    Enum.filter(graph.edges, &(&1.to_node == node_id))
+    Map.get(graph.in_edges, node_id, [])
   end
 
   @doc "Get all output edges emanating from a given node."
   @spec get_out_edges(t(), Node.id()) :: [Edge.t()]
   def get_out_edges(%__MODULE__{} = graph, node_id) do
-    Enum.filter(graph.edges, &(&1.from_node == node_id))
+    Map.get(graph.out_edges, node_id, [])
   end
 
   @spec topological_sort(t()) :: {:ok, [Node.id()]} | {:error, :cycle_detected}
   def topological_sort(%__MODULE__{} = graph) do
-    init_in_degrees = Map.keys(graph.nodes) |> Map.new(fn id -> {id, 0} end)
-
     in_degrees =
-      Enum.reduce(graph.edges, init_in_degrees, fn edge, acc ->
-        Map.update!(acc, edge.to_node, &(&1 + 1))
+      Map.new(graph.nodes, fn {id, _node} ->
+        {id, length(Map.get(graph.in_edges, id, []))}
       end)
-
-    adj_list = Enum.group_by(graph.edges, & &1.from_node, & &1.to_node)
 
     zero_in_degree_nodes =
       in_degrees
       |> Enum.filter(fn {_id, degree} -> degree == 0 end)
       |> Enum.map(fn {id, _degree} -> id end)
 
-    do_topo_sort(zero_in_degree_nodes, in_degrees, adj_list, map_size(graph.nodes), [])
+    do_topo_sort(zero_in_degree_nodes, in_degrees, graph.out_edges, map_size(graph.nodes), [])
   end
 
-  defp do_topo_sort([], _in_degrees, _adj_list, total_nodes, sorted_acc) do
+  defp do_topo_sort([], _in_degrees, _out_edges, total_nodes, sorted_acc) do
     if length(sorted_acc) == total_nodes do
       {:ok, Enum.reverse(sorted_acc)}
     else
@@ -178,11 +211,12 @@ defmodule Quincunx.Topology.Graph do
     end
   end
 
-  defp do_topo_sort([node_id | rest_zero_nodes], in_degrees, adj_list, total, sorted_acc) do
-    neighbors = Map.get(adj_list, node_id, [])
+  defp do_topo_sort([node_id | rest_zero_nodes], in_degrees, out_edges, total, sorted_acc) do
+    edges = Map.get(out_edges, node_id, [])
 
     {new_in_degrees, new_zero_nodes} =
-      Enum.reduce(neighbors, {in_degrees, rest_zero_nodes}, fn to_node, {deg_acc, zero_acc} ->
+      Enum.reduce(edges, {in_degrees, rest_zero_nodes}, fn edge, {deg_acc, zero_acc} ->
+        to_node = edge.to_node
         new_deg = deg_acc[to_node] - 1
         deg_acc = Map.put(deg_acc, to_node, new_deg)
 
@@ -192,6 +226,6 @@ defmodule Quincunx.Topology.Graph do
         end
       end)
 
-    do_topo_sort(new_zero_nodes, new_in_degrees, adj_list, total, [node_id | sorted_acc])
+    do_topo_sort(new_zero_nodes, new_in_degrees, out_edges, total, [node_id | sorted_acc])
   end
 end
