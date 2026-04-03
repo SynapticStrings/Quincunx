@@ -17,9 +17,9 @@ defmodule Quincunx.Editor.SegmentManager do
 
   @type t :: %__MODULE__{
           segments: %{Segment.id() => Segment.t()},
-          # 正排索引：Segment's tag(s)
+          # Forward Index => Segment's tag(s)
           segment_tags: %{Segment.id() => MapSet.t(tag())},
-          # 倒排索引：Tag include segments
+          # Backward Index => Tag include segments
           tag_index: %{tag() => MapSet.t(Segment.id())},
           dep_graph: LiteGraph.t(),
           dirty: MapSet.t(Segment.id())
@@ -133,10 +133,6 @@ defmodule Quincunx.Editor.SegmentManager do
     end
   end
 
-  ## Complex but Useful query
-
-  # get_segment_tags_mapper
-
   ## Dependency Management
 
   # Mono
@@ -191,7 +187,7 @@ defmodule Quincunx.Editor.SegmentManager do
     sources = query_by_tags(manager, List.wrap(source_tag), source_mode)
     targets = query_by_tags(manager, List.wrap(target_tag), target_mode)
 
-    # apply Cartesian product
+    # same as add_tag_dependency
     Enum.reduce(sources, manager, fn src_id, acc_manager ->
       Enum.reduce(targets, acc_manager, fn tgt_id, inner_manager ->
         remove_dependency(inner_manager, src_id, tgt_id)
@@ -243,17 +239,33 @@ defmodule Quincunx.Editor.SegmentManager do
 
   # grouped_dispatch_order/2 (manager, condition)
   def grouped_dispatch_order(%__MODULE__{} = mgr, filter_tags \\ []) do
-    target_ids =
+    initial_targets  =
       if filter_tags == [] do
         mgr.dirty
       else
         query_by_tags(mgr, filter_tags, :intersection)
       end
 
-    if MapSet.size(target_ids) == 0 do
+    if MapSet.size(initial_targets ) == 0 do
       {:ok, []}
     else
-      LiteGraph.topological_sort(mgr.dep_graph)
+      required_set =
+        Enum.reduce(initial_targets, initial_targets, fn seg_id, acc ->
+          upstreams = LiteGraph.dependencies(mgr.dep_graph, seg_id)
+          dirty_upstreams = MapSet.intersection(upstreams, mgr.dirty)
+          MapSet.union(acc, dirty_upstreams)
+        end)
+
+      case LiteGraph.topological_sort(mgr.dep_graph) do
+        {:ok, global_order} ->
+          ordered_required = Enum.filter(global_order, &MapSet.member?(required_set, &1))
+
+          stages = build_stages(ordered_required, required_set, mgr.dep_graph)
+          {:ok, stages}
+
+        {:error, _} = err ->
+          err
+      end
     end
   end
 
@@ -272,5 +284,29 @@ defmodule Quincunx.Editor.SegmentManager do
     affected_ids = LiteGraph.dependents(manager.dep_graph, initial_dirty_ids)
 
     %{manager | dirty: MapSet.union(manager.dirty, MapSet.new(affected_ids))}
+  end
+
+  defp build_stages(ordered_required, required_set, dep_graph) do
+    {_, depth_map} =
+      Enum.reduce(ordered_required, {dep_graph, %{}}, fn id, {g, depths} ->
+        in_deps =
+          Map.get(g.in_adj, id, [])
+          |> Enum.filter(&MapSet.member?(required_set, &1))
+
+        node_depth =
+          if in_deps == [] do
+            0
+          else
+            (in_deps |> Enum.map(&Map.fetch!(depths, &1)) |> Enum.max()) + 1
+          end
+
+        {g, Map.put(depths, id, node_depth)}
+      end)
+
+    # Result: %{0 => [A, B], 1 => [C]} -> [[A, B], [C]]
+    depth_map
+    |> Enum.group_by(fn {_id, depth} -> depth end, fn {id, _depth} -> id end)
+    |> Enum.sort_by(fn {depth, _ids} -> depth end)
+    |> Enum.map(fn {_depth, ids} -> ids end)
   end
 end
