@@ -1,0 +1,3 @@
+defmodule Quincunx.Editor.TagIndexer do
+  # ...
+end

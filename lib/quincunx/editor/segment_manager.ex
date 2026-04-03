@@ -36,51 +36,16 @@ defmodule Quincunx.Editor.SegmentManager do
   ## Session CRUD
 
   # add_segment/3
-  def add_segment(%__MODULE__{} = manager, %Segment{id: id} = seg) do
-    if Map.has_key?(manager.segments, id) do
-      {:error, :already_exists}
-    else
-      {:ok,
-       %{
-         manager
-         | segments: Map.put(manager.segments, id, seg),
-           segment_tags: Map.put(manager.segment_tags, id, MapSet.new()),
-           dep_graph: LiteGraph.add_node(manager.dep_graph, id),
-           dirty: MapSet.put(manager.dirty, id)
-       }}
-    end
-  end
+  defdelegate add_segment(manager, seg), to: Quincunx.Editor.SegmentStore
 
   # remove_segment/2
-  def remove_segment(%__MODULE__{} = manager, seg_id) do
-    tags = Map.get(manager.segment_tags, seg_id, MapSet.new())
-
-    new_tag_index =
-      Enum.reduce(tags, manager.tag_index, fn tag, acc ->
-        Map.update(acc, tag, MapSet.new(), &MapSet.delete(&1, seg_id))
-      end)
-
-    %{
-      manager
-      | segments: Map.delete(manager.segments, seg_id),
-        segment_tags: Map.delete(manager.segment_tags, seg_id),
-        tag_index: new_tag_index,
-        dep_graph: LiteGraph.remove_node(manager.dep_graph, seg_id),
-        dirty: MapSet.delete(manager.dirty, seg_id)
-    }
-  end
+  defdelegate remove_segment(manager, seg_id), to: Quincunx.Editor.SegmentStore
 
   # get_segment/2
-  def get_segment(%__MODULE__{segments: segs}, seg_id) do
-    Map.fetch(segs, seg_id)
-    |> case do
-      :error -> {:error, :segement_not_exists}
-      ok_seg -> ok_seg
-    end
-  end
+  defdelegate get_segment(manager, seg_id), to: Quincunx.Editor.SegmentStore
 
   # segment_ids/1
-  def segment_ids(%__MODULE__{segments: segs}), do: Map.keys(segs)
+  defdelegate segment_ids(manager), to: Quincunx.Editor.SegmentStore
 
   ## Tag related
 
