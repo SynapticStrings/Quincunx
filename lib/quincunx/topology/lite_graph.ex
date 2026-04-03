@@ -1,4 +1,4 @@
-defmodule Quincunx.Topology.LightGraph do
+defmodule Quincunx.Topology.LiteGraph do
   @moduledoc """
   Lightweight DAG for modelling dependencies between opaque identifiers.
 
