@@ -199,43 +199,41 @@ defmodule Quincunx.Editor.SegmentManager do
   ## Operations(with Dirty Propogation) & Dispatch
 
   # apply_operation/3
-  def apply_operation(%__MODULE__{} = manager, seg_id, op) do
-    case Map.fetch(manager.segments, seg_id) do
-      {:ok, seg} ->
-        Segment.apply_operation(seg, op)
-        |> then(&op_with_dirty_propogation(manager, seg_id, &1))
-
-      :error ->
-        manager
+  def apply_operation(%__MODULE__{} = manager, segment_id, op) do
+    with {:ok, new_segments} <-
+           SegmentStore.update_segment(manager.segments, segment_id, fn seg ->
+             Segment.apply_operation(seg, op)
+           end) do
+      op_with_dirty_propogation(manager, segment_id, new_segments)
+    else
+      _ -> manager
     end
   end
 
   # undo/2
-  def undo(%__MODULE__{} = manager, seg_id) do
-    case Map.fetch(manager.segments, seg_id) do
-      {:ok, seg} ->
-        op_with_dirty_propogation(manager, seg_id, Segment.undo(seg))
-
-      :error ->
-        manager
+  def undo(%__MODULE__{} = manager, segment_id) do
+    with {:ok, new_segments} <-
+           SegmentStore.update_segment(manager.segments, segment_id, &Segment.undo/1) do
+      op_with_dirty_propogation(manager, new_segments, segment_id)
+    else
+      _ -> manager
     end
   end
 
   # redo/2
-  def redo(%__MODULE__{} = manager, seg_id) do
-    case Map.fetch(manager.segments, seg_id) do
-      {:ok, seg} ->
-        op_with_dirty_propogation(manager, seg_id, Segment.redo(seg))
-
-      :error ->
-        manager
+  def redo(%__MODULE__{} = manager, segment_id) do
+    with {:ok, new_segments} <-
+           SegmentStore.update_segment(manager.segments, segment_id, &Segment.redo/1) do
+      op_with_dirty_propogation(manager, new_segments, segment_id)
+    else
+      _ -> manager
     end
   end
 
-  defp op_with_dirty_propogation(manager, seg_id, new_seg) do
+  defp op_with_dirty_propogation(manager, new_segments, segment_id) do
     manager
-    |> put_in([Access.key(:segments), seg_id], new_seg)
-    |> propagate_dirty([seg_id])
+    |> put_in([Access.key(:segments)], new_segments)
+    |> propagate_dirty([segment_id])
   end
 
   # grouped_dispatch_order/2 (manager, condition)
