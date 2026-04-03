@@ -14,7 +14,7 @@ defmodule Quincunx.MixProject do
       ],
       test_coverage: [
         ignore_modules: [
-          ~r/.*Test.DummyOrchidStep.*/
+          ~r/.*Test.*/
           # For other module, while complete.
         ]
       ]
