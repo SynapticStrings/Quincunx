@@ -8,7 +8,7 @@ defmodule Quincunx.Compiler.GraphBuilder do
   alias Quincunx.Compiler.RecipeBundle
 
   @doc "Compile a pure structural graph into generic isolated static recipes."
-  @spec compile_graph(Graph.t(), Cluster.t()) ::
+  @spec compile_graph(Graph.t(Orchid.Step.implementation()), Cluster.t()) ::
           {:error, :cycle_detected} | {:ok, [RecipeBundle.t()]}
   def compile_graph(%Graph{} = graph, cluster_declara \\ %Cluster{}) do
     with {:ok, sorted_node_ids} <- Graph.topological_sort(graph) do
@@ -60,7 +60,7 @@ defmodule Quincunx.Compiler.GraphBuilder do
         other -> other
       end
 
-    {node.impl, step_inputs, step_outputs, node.opts}
+    {node.container, step_inputs, step_outputs, node.options}
   end
 
   defp calculate_boundaries(node_ids_in_cluster, graph) do

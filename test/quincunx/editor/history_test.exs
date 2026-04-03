@@ -11,7 +11,7 @@ defmodule Quincunx.Editor.HistoryTest do
       ## YES!!
       assert topology?({:add_node, %Node{}})
       assert topology?({:update_node, :foo, %Node{}})
-      assert topology?({:update_node, :foo, fn node -> %{node | impl: Dummy} end})
+      assert topology?({:update_node, :foo, fn node -> %{node | container: Dummy} end})
       assert topology?({:remove_node, :foo})
       assert topology?({:add_edge, %Edge{}})
       assert topology?({:remove_edge, %Edge{}})

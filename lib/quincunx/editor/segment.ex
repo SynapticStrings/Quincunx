@@ -15,7 +15,7 @@ defmodule Quincunx.Editor.Segment do
 
   @type t :: %__MODULE__{
           id: id(),
-          graph: Graph.t(),
+          graph: Graph.t(Orchid.Step.implementation()),
           cluster: Cluster.t(),
           history: History.t(),
           data_interventions: interventions_map(),

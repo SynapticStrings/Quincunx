@@ -9,13 +9,13 @@ defmodule Quincunx.Topology.GraphTest do
 
   describe "Item creation" do
     test "same step impl can use different node ids" do
-      node_1 = %Node{id: :node_1, impl: DummyStep1, inputs: [:in], outputs: [:out]}
-      node_2 = %Node{id: :node_2, impl: DummyStep1, inputs: [:in], outputs: [:out]}
+      node_1 = %Node{id: :node_1, container: DummyStep1, inputs: [:in], outputs: [:out]}
+      node_2 = %Node{id: :node_2, container: DummyStep1, inputs: [:in], outputs: [:out]}
 
       assert Map.from_struct(node_1) != Map.from_struct(node_2)
 
-      {:ok, res1} = node_1.impl.run(%Orchid.Param{payload: "NodeIn"}, [])
-      {:ok, res2} = node_2.impl.run(%Orchid.Param{payload: "NodeIn"}, [])
+      {:ok, res1} = node_1.container.run(%Orchid.Param{payload: "NodeIn"}, [])
+      {:ok, res2} = node_2.container.run(%Orchid.Param{payload: "NodeIn"}, [])
 
       assert Orchid.Param.get_payload(res1) == Orchid.Param.get_payload(res2)
     end
@@ -42,9 +42,9 @@ defmodule Quincunx.Topology.GraphTest do
 
     test "Quincunx.Topology.Graph.add_node/2" do
       graph =
-        new() |> add_node(%Node{id: :node_1, impl: DummyStep1, inputs: [:in], outputs: [:out]})
+        new() |> add_node(%Node{id: :node_1, container: DummyStep1, inputs: [:in], outputs: [:out]})
 
-      assert get_in(graph.nodes.node_1.impl) == DummyStep1
+      assert get_in(graph.nodes.node_1.container) == DummyStep1
     end
 
     # NOTE: 可以悬空
@@ -52,8 +52,8 @@ defmodule Quincunx.Topology.GraphTest do
     test "add_edge/2" do
       graph =
         new()
-        |> add_node(%Node{id: :a, impl: DummyStep1, inputs: [:in], outputs: [:out]})
-        |> add_node(%Node{id: :b, impl: DummyStep1, inputs: [:in], outputs: [:out]})
+        |> add_node(%Node{id: :a, container: DummyStep1, inputs: [:in], outputs: [:out]})
+        |> add_node(%Node{id: :b, container: DummyStep1, inputs: [:in], outputs: [:out]})
         |> add_edge(Edge.new(:a, :out, :b, :in))
 
       assert graph.edges |> Enum.count() == 1
@@ -67,7 +67,7 @@ defmodule Quincunx.Topology.GraphTest do
 
       graph = remove_node(graph, :node_a)
 
-      assert graph.nodes == %{:node_b => %Node{id: :node_b, impl: DummyStep2, inputs: [:mid], outputs: [:out], opts: [], extra: %{}}}
+      assert graph.nodes == %{:node_b => %Node{id: :node_b, container: DummyStep2, inputs: [:mid], outputs: [:out], options: [], extra: %{}}}
       assert graph.edges == MapSet.new()
     end
 
@@ -83,15 +83,15 @@ defmodule Quincunx.Topology.GraphTest do
     test "update_node/2" do
       graph = build_graph_v1()
 
-      graph = update_node(graph, :node_b, %Node{id: :node_b, impl: DummyStep1, inputs: [:mid], outputs: [:out], opts: [], extra: %{}})
+      graph = update_node(graph, :node_b, %Node{id: :node_b, container: DummyStep1, inputs: [:mid], outputs: [:out], options: [], extra: %{}})
 
-      assert get_in(graph.nodes.node_b.impl) == DummyStep1
+      assert get_in(graph.nodes.node_b.container) == DummyStep1
 
-      graph = update_node(graph, :node_b, fn old_node -> %{old_node | impl: DummyStep2} end)
+      graph = update_node(graph, :node_b, fn old_node -> %{old_node | container: DummyStep2} end)
 
-      assert get_in(graph.nodes.node_b.impl) == DummyStep2
+      assert get_in(graph.nodes.node_b.container) == DummyStep2
 
-      new_graph = update_node(graph, :node_c, fn old_node -> %{old_node | impl: DummyStep2} end)
+      new_graph = update_node(graph, :node_c, fn old_node -> %{old_node | container: DummyStep2} end)
 
       assert graph.nodes == new_graph.nodes
     end
@@ -100,8 +100,8 @@ defmodule Quincunx.Topology.GraphTest do
       edge = Edge.new(:a, :out, :b, :in)
       graph =
         new()
-        |> add_node(%Node{id: :a, impl: DummyStep1, inputs: [:in], outputs: [:out]})
-        |> add_node(%Node{id: :b, impl: DummyStep1, inputs: [:in], outputs: [:out]})
+        |> add_node(%Node{id: :a, container: DummyStep1, inputs: [:in], outputs: [:out]})
+        |> add_node(%Node{id: :b, container: DummyStep1, inputs: [:in], outputs: [:out]})
         |> add_edge(edge)
 
       graph = remove_edge(graph, edge)
@@ -112,9 +112,9 @@ defmodule Quincunx.Topology.GraphTest do
     test "get_in_edges/2" do
       graph =
         new()
-        |> add_node(%Node{id: :a, impl: DummyStep1, inputs: [:in], outputs: [:out]})
-        |> add_node(%Node{id: :b, impl: DummyStep1, inputs: [:in], outputs: [:out]})
-        |> add_node(%Node{id: :c, impl: DummyStep1, inputs: [:in], outputs: [:out]})
+        |> add_node(%Node{id: :a, container: DummyStep1, inputs: [:in], outputs: [:out]})
+        |> add_node(%Node{id: :b, container: DummyStep1, inputs: [:in], outputs: [:out]})
+        |> add_node(%Node{id: :c, container: DummyStep1, inputs: [:in], outputs: [:out]})
         |> add_edge(Edge.new(:a, :out, :c, :in))
         |> add_edge(Edge.new(:b, :out, :c, :in))
 
@@ -126,9 +126,9 @@ defmodule Quincunx.Topology.GraphTest do
     test "get_out_edges/2" do
       graph =
         new()
-        |> add_node(%Node{id: :a, impl: DummyStep1, inputs: [:in], outputs: [:out]})
-        |> add_node(%Node{id: :b, impl: DummyStep1, inputs: [:in], outputs: [:out]})
-        |> add_node(%Node{id: :c, impl: DummyStep1, inputs: [:in], outputs: [:out]})
+        |> add_node(%Node{id: :a, container: DummyStep1, inputs: [:in], outputs: [:out]})
+        |> add_node(%Node{id: :b, container: DummyStep1, inputs: [:in], outputs: [:out]})
+        |> add_node(%Node{id: :c, container: DummyStep1, inputs: [:in], outputs: [:out]})
         |> add_edge(Edge.new(:a, :out, :b, :in))
         |> add_edge(Edge.new(:a, :out, :c, :in))
 
@@ -151,8 +151,8 @@ defmodule Quincunx.Topology.GraphTest do
 
       # Mock redo & undo
       graph2 = build_graph_v1()
-      |> update_node(:node_b, %Node{id: :node_b, impl: DummyStep1, inputs: [:mid], outputs: [:out], opts: [], extra: %{}})
-      |> update_node(:node_b, fn old_node -> %{old_node | impl: DummyStep2} end)
+      |> update_node(:node_b, %Node{id: :node_b, container: DummyStep1, inputs: [:mid], outputs: [:out], options: [], extra: %{}})
+      |> update_node(:node_b, fn old_node -> %{old_node | container: DummyStep2} end)
 
       assert same?(graph1, graph2)
     end
@@ -182,8 +182,8 @@ defmodule Quincunx.Topology.GraphTest do
       # a -> b -> a
       graph =
         new()
-        |> add_node(%Node{id: :a, impl: DummyStep1, inputs: [:in], outputs: [:out]})
-        |> add_node(%Node{id: :b, impl: DummyStep1, inputs: [:in], outputs: [:out]})
+        |> add_node(%Node{id: :a, container: DummyStep1, inputs: [:in], outputs: [:out]})
+        |> add_node(%Node{id: :b, container: DummyStep1, inputs: [:in], outputs: [:out]})
         |> add_edge(Edge.new(:a, :out, :b, :in))
         |> add_edge(Edge.new(:b, :out, :a, :in))
 

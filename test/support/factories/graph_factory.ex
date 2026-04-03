@@ -10,13 +10,13 @@ defmodule QuincunxTest.GraphFactory do
     new()
     |> add_node(%Node{
       id: :node_a,
-      impl: S.DummyStep1,
+      container: S.DummyStep1,
       inputs: [:in],
       outputs: [:mid]
     })
     |> add_node(%Node{
       id: :node_b,
-      impl: S.DummyStep2,
+      container: S.DummyStep2,
       inputs: [:mid],
       outputs: [:out]
     })
@@ -25,10 +25,10 @@ defmodule QuincunxTest.GraphFactory do
 
   def build_finin_and_fanout_dag do
     new()
-    |> add_node(%Node{id: :step1, impl: DummyStep1, inputs: [:in], outputs: [:out]})
-    |> add_node(%Node{id: :step2, impl: DummyStep2, inputs: [:in], outputs: [:out]})
-    |> add_node(%Node{id: :step3, impl: DummyStep3, inputs: [:in1, :in2], outputs: [:out]})
-    |> add_node(%Node{id: :step4, impl: DummyStep4, inputs: [:in], outputs: [:out1, :out2]})
+    |> add_node(%Node{id: :step1, container: DummyStep1, inputs: [:in], outputs: [:out]})
+    |> add_node(%Node{id: :step2, container: DummyStep2, inputs: [:in], outputs: [:out]})
+    |> add_node(%Node{id: :step3, container: DummyStep3, inputs: [:in1, :in2], outputs: [:out]})
+    |> add_node(%Node{id: :step4, container: DummyStep4, inputs: [:in], outputs: [:out1, :out2]})
     |> add_edge(Edge.new(:step1, :out, :step3, :in1))
     |> add_edge(Edge.new(:step2, :out, :step3, :in2))
     |> add_edge(Edge.new(:step3, :out, :step4, :in))

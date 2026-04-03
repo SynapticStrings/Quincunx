@@ -10,21 +10,22 @@ defmodule Quincunx.Topology.Graph do
 
     @type node_port :: atom() | binary()
 
-    @type t :: %__MODULE__{
+    @type t(type) :: %__MODULE__{
             id: id(),
-            impl: Orchid.Step.implementation(),
+            container: type,
             inputs: [node_port()],
             outputs: [node_port()],
-            opts: keyword(),
+            options: keyword(),
             extra: map()
           }
+    @type t() :: t(term())
 
     defstruct [
       :id,
-      :impl,
+      :container,
       inputs: [],
       outputs: [],
-      opts: [],
+      options: [],
       extra: %{}
     ]
   end
@@ -74,10 +75,11 @@ defmodule Quincunx.Topology.Graph do
   # May add adjacency lists in future
   # (if graph is REALLY big)
   # in/out edge => %{Node.id() => [Edge.t()]}
-  @type t :: %__MODULE__{
-          nodes: %{Node.id() => Node.t()},
+  @type t(container_type) :: %__MODULE__{
+          nodes: %{Node.id() => Node.t(container_type)},
           edges: MapSet.t(Edge.t())
         }
+  @type t() :: t(term())
   defstruct [:nodes, :edges]
 
   def new,
