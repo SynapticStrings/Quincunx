@@ -32,6 +32,7 @@ defmodule Quincunx.Editor.SegmentManager do
 
   ## Session CRUD
 
+  @spec add_segment(t(), Segment.t()) :: {:error, :already_exists} | {:ok, t()}
   def add_segment(%__MODULE__{} = manager, %Segment{id: id} = segment) do
     with {:ok, new_segments} <- SegmentStore.add_segment(manager.segments, segment) do
       {:ok,
@@ -45,38 +46,43 @@ defmodule Quincunx.Editor.SegmentManager do
     end
   end
 
+  @spec remove_segment(t(), Segment.id()) :: {:error, :not_exists} | {:ok, t()}
   def remove_segment(%__MODULE__{} = manager, seg_id) do
     with {:ok, new_segments} <- SegmentStore.remove_segment(manager.segments, seg_id) do
-      %{
+      {:ok, %{
         manager
         | segments: new_segments,
           tag_indexer: TagIndexer.remove_segment(manager.tag_indexer, seg_id),
           dep_graph: LiteGraph.remove_node(manager.dep_graph, seg_id),
           dirty: MapSet.delete(manager.dirty, seg_id)
-      }
+      }}
     end
   end
 
+  @spec get_segment(t(), Segment.id()) :: {:error, :not_exists} | {:ok, Segment.t()}
   def get_segment(%__MODULE__{segments: segs}, seg_id) do
     SegmentStore.get_segment(segs, seg_id)
   end
 
   # segment_ids/1
+  @spec segment_ids(t()) :: [Segment.id()]
   def segment_ids(%__MODULE__{segments: segs}), do: SegmentStore.exist_segments(segs)
 
   ## Tag related
 
   # Tag's CRUD
 
+  @spec create_tag(t(), tag()) :: t()
   def create_tag(%__MODULE__{} = mgr, new_tag) do
     %{mgr | tag_indexer: TagIndexer.create_tag(mgr.tag_indexer, new_tag)}
   end
 
+  @spec delete_tag(t(), tag()) :: t()
   def delete_tag(%__MODULE__{} = mgr, removed_tag) do
     %{mgr | tag_indexer: TagIndexer.remove_tag(mgr.tag_indexer, removed_tag)}
   end
 
-  # apply_tag/3
+  @spec apply_tag(t(), tag(), [Segment.id()] | Segment.id()) :: t()
   def apply_tag(%__MODULE__{} = manager, tag, seg_ids) do
     clean_segments_ids =
       seg_ids
@@ -86,13 +92,14 @@ defmodule Quincunx.Editor.SegmentManager do
     %{manager | tag_indexer: TagIndexer.apply_tag(manager.tag_indexer, tag, clean_segments_ids)}
   end
 
-  # divest_tag/2
+  @spec divest_tag(t(), tag(), [Segment.id()] | Segment.id()) :: t()
   def divest_tag(%__MODULE__{} = manager, tag, seg_ids) do
     %{manager | tag_indexer: TagIndexer.divest_tag(manager.tag_indexer, tag, seg_ids)}
   end
 
   # query_tag
   # query_by_tags/3
+  @spec query_by_tags(t(), maybe_improper_list(), :union | :intersection) :: any()
   def query_by_tags(%__MODULE__{} = manager, tags, mode) do
     TagIndexer.query_by_tags(manager.tag_indexer, tags, mode)
   end

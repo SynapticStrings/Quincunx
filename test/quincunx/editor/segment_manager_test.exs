@@ -24,7 +24,7 @@ defmodule Quincunx.Editor.SegmentManagerTest do
 
     test "remove_segment/2" do
       {:ok, mgr} = new() |> add_segment(Segment.new("Foo", Graph.new()))
-      mgr = mgr |> remove_segment("Foo")
+      {:ok, mgr} = remove_segment(mgr, "Foo")
 
       # Segment Store.
       assert get_in(mgr, [Access.key!(:segments)]) |> map_size() == 0
