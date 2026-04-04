@@ -8,7 +8,7 @@ defmodule Quincunx.Editor.History.Resolver do
 
   @type effective_state :: {
           Graph.t(),
-          %{Graph.PortRef.t() => %{Operation.intervention_type() => any()}}
+          %{Graph.PortRef.t() => {Operation.intervention_type(), any()}}
         }
 
   @doc """
@@ -20,7 +20,8 @@ defmodule Quincunx.Editor.History.Resolver do
   def resolve(%History{} = history, graph) do
     {topology_ops, data_ops} =
       history.undo_stack
-      |> List.flatten()
+      |> Enum.reverse()
+      |> Enum.flat_map(&List.wrap/1) 
       |> Enum.split_with(&Operation.topology?/1)
 
     effective_graph = apply_topology(graph, topology_ops)

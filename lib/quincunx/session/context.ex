@@ -154,8 +154,8 @@ defmodule Quincunx.Session.Context do
 
   @spec compile_segment({Segment.id(), Segment.t()}, static_bundles_cache()) ::
           {:error, :cycle_detected}
-          | {Segment.id(), derive :: :cache | :compile,
-             cached_static_or_compiled_recipe :: [RecipeBundle.t()],
+          | {Segment.id(), Graph.t(),
+             %{Graph.PortRef.t() => {Quincunx.Editor.History.Operation.intervention_type(), any()}},
              recipe_bundle :: [RecipeBundle.t()]}
   def compile_segment({seg_id, %Segment{} = seg}, cache) do
     {effective_graph, interventions} =
