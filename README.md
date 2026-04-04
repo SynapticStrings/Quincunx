@@ -1,138 +1,40 @@
 # [WIP] Quincunx
 
-A lightweight orchestration core for real-time incremental generation, with parametric curve modulation and pluggable calculate backends.
+> [!IMPORTANT]
+>
+> To ensure development efficiency, documentation and comments will be in Chinese currently.
+> Once the API was consolidate, I'll translate docs and comments into English.
 
-Quincunx is originally designed to be embedded inside larger systems such as vocal editors (OpenUTAU-like) or live singing engines. It acts as the bridge between abstract musical data (Notes, Phonemes, Curves) and the concrete execution graph managed by [Orchid](https://hex.pm/packages/orchid).
+用于存在外部数据介入的增量生成任务的轻量级编排核心。
 
-*Although the initial vision is to implement an interactive singing synthesis editor, Quincunx remains domain-agnostic and does not introduce domain-specific dependencies.*
+*尽管最初的愿景是实现一个交互式歌唱合成编辑器，但 Quincunx 仍然保持领域无关性，并且不会引入特定领域的依赖项。*
 
-## Features
+## 特征
 
-- Real-time Incremental Rendering
-- Parametric Curve Modulation
-- Automatic Deterministic Caching (via ETS & OrchidStratum)
-- Heterogeneous Device Scheduling (Topology Tearing)
-- Seamless OTP/GenServer Integration
+* 整合 OTP/GenServer 服务（基于 [OrchidSymbiont](https://github.com/SynapticStrings/OrchidSymbiont)）
+* 基于 [OrchidStratum](https://github.com/SynapticStrings/OrchidStratum) 的自动确定性缓存（可以实现基于 `Segment` 的增量生成）
+* 异构设备调度的潜能
 
-## Define Scope
+## 范畴
 
-Quincunx is:
+Quincunx 是：
 
-* An orchestration core for application
-* Backend-agnostic (Python / ONNX / HTTP service)
-* Designed for fine-grained modulation
-* Embeddable inside BEAM systems
+* 一个用于应用的调度核心
+* 使用服务无关（Python / NIF / ONNX / HTTP 服务）
+* 专为需要人类的精细调制/介入的任务而设计
+* 嵌入在 BEAM 系统之中
 
-And Quincunx isn't:
+Quincunx 不是：
 
-* A singing synthesizer editor
-* A DAW
-* A GUI framework
-* A training toolkit
-* An acoustic model implementation
+* 歌声合成编辑器
+* DAW
+* UI 框架
+* 训练集合
+* 声学模型实现
 
-## Quick Start
+## 开发进度
 
-### OTP Version (Recommended)
-
-Quincunx provides a robust, session-based `GenServer` structure capable of isolated caching and state orchestration.
-
-```elixir
-alias Quincunx.Session
-alias Quincunx.Editor.Segment
-
-# 1. Start an isolated session process
-{:ok, pid} = Session.start(:my_project_session)
-
-# 2. Assume you have a compiled segment, push interventions (e.g., overriding AI configs)
-apply_op = {:set_intervention, {:port, :model_node, :pitch}, :override, curve_data}
-GenServer.cast(pid, {:apply_operation, segment_id, apply_op})
-
-# 3. Trigger the dispatch phase to calculate everything in parallel
-# The Session will automatically compile changes, apply cluster splitting, bypass caches,
-# and write results back to the blackboard.
-:ok = GenServer.call(pid, :dispatch)
-```
-
-### Non-OTP Version (Pure Functional)
-
-If you prefer managing the lifecycle manually:
-
-```elixir
-alias Quincunx.Session.Segment
-alias Quincunx.Session.Renderer.{Planner, Dispatcher, Blackboard}
-
-# 1. User applies an operation
-dirty_segment = Segment.apply_operation(segment, {:set_intervention, port_key, :input, curve_data})
-
-# 2. Planner compiles and aligns segments
-{:ok, plan} = Planner.build([dirty_segment])
-
-# 3. Mount Blackboard
-blackboard = Blackboard.new(:my_vocal_session)
-
-# 4. Dispatch parallel rendering
-{:ok, new_blackboard} = Dispatcher.dispatch(plan, blackboard)
-```
-
----
-
-## Extensibility & Configuration
-
-Quincunx is decoupled from domain logic via **Orchid's Baggage and Hooks**. You can easily configure backends, handle error telemetry, or inject custom domain logic without forking Quincunx.
-
-### Injecting Hooks (e.g., Custom Parameter Offsets)
-
-Want to add custom audio-offsetting or error handling hooks? Pass `orchid_executor_and_opts` and `orchid_baggage` during the Dispatcher or Session call:
-
-```elixir
-# Example: Injecting your custom Override Hook and specific Baggage parameters
-orchid_opts = [
-  orchid_executor_and_opts: {Orchid.Executor.Parallel, [
-    hooks: [Orchid.Hook.Override]
-  ]},
-  orchid_baggage: [
-    override: %{...}, # global override map
-    offset: %{...} # global offset map
-  ]
-]
-
-# When using Session (OTP GenServer):
-GenServer.call(:my_session, {:dispatch, orchid_opts})
-
-# When using Dispatcher directly:
-Dispatcher.dispatch(plan, blackboard, orchid_opts)
-```
-
-Your `Orchid.Runner.Hook` can then intercept the execution flow, process these Baggage variables, and seamlessly integrate into Quincunx's lifecycle.
-
-## Architecture & Key Concepts
-
-### Granularity Control of Incremental Generation
-
-In Quincunx, the indivisible unit of incremental computation is the **Segment**.
-Media data (like music or animation) usually exhibits strong temporal and spatial locality. Modifying a single measure of notes shouldn't trigger a full-song re-render.
-
-*   **Pure Data Topology (Lily Graph)**: Each Segment uses a deterministic Directed Acyclic Graph (DAG) to describe computational steps.
-*   **Compilation & Alignment**: Before execution, Quincunx compiles graphs from multiple Segments into standardized `Orchid.Recipe` sets, utilizing **Stages as execution barriers** to push data flow forward safely and in parallel.
-
-### Human Intervention vs. Generative Models
-
-Because the base Lily Graph is immutable, Quincunx introduces a **History State Machine**:
-*   User interventions do not permanently mutate the base topology. Instead, they are pushed onto an undo/redo stack as `Operation`s (e.g., `{:set_intervention, port, data}`).
-*   During incremental rendering, the `Compiler` treats these interventions as constant parameters, performing **Late Binding** into the execution context. 
-
-### Deterministic Caching Mechanism
-
-When a node executes, the system calculates a fingerprint ( $\mathrm{StepKey} = \mathrm{SHA256}(\mathrm{Impl} \parallel \mathrm{InputHashes} \parallel \mathrm{SortedOpts})$ ). A cache hit immediately swaps heavy computations with lightweight memory references.
-
-Unlike global cache pools, Quincunx provisions isolated `Storage` per document/session leveraging BEAM process semantics. **When a document process terminates, the VM instantly garbage collects the associated cache.**
-
-### Heterogeneous Device Scheduling
-
-Quincunx manages heterogeneous routing via **Cluster (Color Painting)**. Modifying the `Cluster` declaration will trigger **Topology Tearing**: Dependent nodes belonging to different clusters are automatically split into separate `Orchid.Recipe`s. This allows the host application to dispatch heavy tensors to dedicated Python logic while keeping lightweight data transformations local.
-
-### The Execution Triad
-1. **Planner (Pure Functional)**: Resolves segment histories, compiles them, and outputs a deterministic plan grouped by `Stage`s.
-2. **Dispatcher (OTP Coordinator)**: An asynchronous state machine that executes tasks stage by stage, maintaining barrier-synchronization.
-3. **Worker (Stateless Runner)**: Wraps `Orchid.run/3`, resolves dependencies from the `Blackboard`, and applies cache bypassing.
+- [x] 可运行任务
+- [ ] 整合缓存并运行
+- [ ] 工程可以被导出/加载为文件
+- [ ] 一点面向编辑器的小改动

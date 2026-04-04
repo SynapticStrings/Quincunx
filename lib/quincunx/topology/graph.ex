@@ -159,12 +159,23 @@ defmodule Quincunx.Topology.Graph do
   end
 
   def add_edge(%__MODULE__{} = graph, edge) do
-    %{
-      graph
-      | edges: MapSet.put(graph.edges, edge),
-        in_edges: Map.update(graph.in_edges, edge.to_node, [edge], &[edge | &1]),
-        out_edges: Map.update(graph.out_edges, edge.from_node, [edge], &[edge | &1])
-    }
+    cond do
+      # Avoid self-loop
+      edge.from_node == edge.to_node ->
+        graph
+
+      # Avoid duplicated edge
+      MapSet.member?(graph.edges, edge) ->
+        graph
+
+      true ->
+        %{
+          graph
+          | edges: MapSet.put(graph.edges, edge),
+            in_edges: Map.update(graph.in_edges, edge.to_node, [edge], &[edge | &1]),
+            out_edges: Map.update(graph.out_edges, edge.from_node, [edge], &[edge | &1])
+        }
+    end
   end
 
   def remove_edge(%__MODULE__{edges: edges} = graph, edge) do

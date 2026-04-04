@@ -56,6 +56,10 @@ defmodule Quincunx.Topology.GraphTest do
         |> add_node(%Node{id: :a, container: DummyStep1, inputs: [:in], outputs: [:out]})
         |> add_node(%Node{id: :b, container: DummyStep1, inputs: [:in], outputs: [:out]})
         |> add_edge(Edge.new(:a, :out, :b, :in))
+        # 重复边会被忽略
+        |> add_edge(Edge.new(:a, :out, :b, :in))
+        # 自环边也会被忽略
+        |> add_edge(Edge.new(:a, :out, :a, :in))
 
       assert graph.edges |> Enum.count() == 1
       edge = Enum.at(graph.edges, 0)

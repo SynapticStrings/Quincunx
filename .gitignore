@@ -22,3 +22,7 @@ quincunx-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Language Server
+.elixir_ls/
+.expert/
