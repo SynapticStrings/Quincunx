@@ -59,6 +59,21 @@ defmodule Quincunx.Editor.SegmentManagerTest do
       assert {:error, :not_exists} = get_segment(mgr, "C")
       assert segment_ids(mgr) |> Enum.sort() == ["A", "B"]
     end
+
+    test "other scenario related to update(only in Quincunx.Editor.SegmentStore.update_segment/3)" do
+      mgr =
+        new() |> add_segment(seg("Foo")) |> unwrap_ok() |> add_segment(seg("Bar")) |> unwrap_ok()
+
+      assert {:error, :segment_id_changed} ==
+               Quincunx.Editor.SegmentStore.update_segment(mgr.segments, "Foo", fn seg ->
+                 %{seg | id: "Baz"}
+               end)
+
+      assert {:error, :segment_id_conflict} ==
+               Quincunx.Editor.SegmentStore.update_segment(mgr.segments, "Foo", fn seg ->
+                 %{seg | id: "Bar"}
+               end)
+    end
   end
 
   describe "Tag Operation" do
@@ -130,8 +145,6 @@ defmodule Quincunx.Editor.SegmentManagerTest do
   end
 
   describe "Dirty Propagation & Dispatch" do
-    # 这个先跳过
-    # 因为默认 segment 进来就是脏的
     test "propagate_dirty marks dependents transitively" do
       mgr =
         new()
