@@ -1,10 +1,10 @@
-defmodule Quincunx.Editor.Segment do
+defmodule Quincunx.Document.Segment do
   @moduledoc """
   The smallest unit for incremental generation.
   It holds the static topology, user edit history, and cached runtime references.
   """
 
-  alias Quincunx.Editor.History
+  alias Quincunx.Document.History
   alias Quincunx.Topology.{Graph, Cluster}
 
   @type interventions_map :: %{

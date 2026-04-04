@@ -3,7 +3,7 @@ defmodule Quincunx.Compiler do
   The final stage of pure functional pipelines.
   Translates the effective DAG into a sequence of Orchid.Recipe.
   """
-  alias Quincunx.Editor.{History, Segment}
+  alias Quincunx.Document.{History, Segment}
   alias Quincunx.Compiler.RecipeBundle
 
   @doc "Compile segments into batch-ready segments with attached recipe_bundles."

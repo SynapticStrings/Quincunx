@@ -7,7 +7,7 @@ defmodule Quincunx.Renderer.Worker do
   """
 
   alias Quincunx.Topology.Graph.PortRef
-  alias Quincunx.Editor.Segment
+  alias Quincunx.Document.Segment
   alias Quincunx.Compiler.RecipeBundle
   alias Quincunx.Renderer.{Blackboard, Configurator}
 

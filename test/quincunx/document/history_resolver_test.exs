@@ -1,8 +1,8 @@
-defmodule Quincunx.Editor.HistoryResolverTest do
+defmodule Quincunx.Document.HistoryResolverTest do
   use ExUnit.Case
 
-  import Quincunx.Editor.History.Resolver
-  alias Quincunx.Editor.History
+  import Quincunx.Document.History.Resolver
+  alias Quincunx.Document.History
   alias Quincunx.Topology.Graph.{Node, Edge}
   import QuincunxTest.GraphFactory
   alias QuincunxTest.DummyOrchidStep, as: S

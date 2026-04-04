@@ -8,7 +8,7 @@ defmodule Quincunx.Session.Server do
 
   alias Quincunx.Session.{Storage, Context}
   alias Quincunx.Session
-  alias Quincunx.Editor.Segment
+  alias Quincunx.Document.Segment
   alias Quincunx.Renderer.Dispatcher
 
   def start_link(opts) do

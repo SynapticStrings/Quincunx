@@ -1,10 +1,10 @@
-defmodule Quincunx.Editor.History.Resolver do
+defmodule Quincunx.Document.History.Resolver do
   @moduledoc """
   Collapse the event sourcing history onto the base graph.
   Separates pure structural changes from data interventions for performance optimizations.
   """
   alias Quincunx.Topology.Graph
-  alias Quincunx.Editor.{History, History.Operation}
+  alias Quincunx.Document.{History, History.Operation}
 
   @type effective_state :: {
           Graph.t(),
@@ -21,7 +21,7 @@ defmodule Quincunx.Editor.History.Resolver do
     {topology_ops, data_ops} =
       history.undo_stack
       |> Enum.reverse()
-      |> Enum.flat_map(&List.wrap/1) 
+      |> Enum.flat_map(&List.wrap/1)
       |> Enum.split_with(&Operation.topology?/1)
 
     effective_graph = apply_topology(graph, topology_ops)

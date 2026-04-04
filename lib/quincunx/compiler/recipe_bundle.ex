@@ -2,7 +2,7 @@ defmodule Quincunx.Compiler.RecipeBundle do
   @moduledoc "Container for static AST and dynamic parameters."
 
   alias Quincunx.Topology.Graph
-  alias Quincunx.Editor.Segment
+  alias Quincunx.Document.Segment
 
   @type t :: %__MODULE__{
           id: Segment.id(),

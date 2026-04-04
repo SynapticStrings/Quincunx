@@ -5,7 +5,7 @@ defmodule Quincunx.Session.Context do
 
   alias Quincunx.Session.Storage
   alias Quincunx.Topology.Graph
-  alias Quincunx.Editor.{Segment, History}
+  alias Quincunx.Document.{Segment, History}
   alias Quincunx.Renderer.{Blackboard, Planner}
   alias Quincunx.Compiler.{RecipeBundle, GraphBuilder}
 
@@ -155,7 +155,7 @@ defmodule Quincunx.Session.Context do
   @spec compile_segment({Segment.id(), Segment.t()}, static_bundles_cache()) ::
           {:error, :cycle_detected}
           | {Segment.id(), Graph.t(),
-             %{Graph.PortRef.t() => {Quincunx.Editor.History.Operation.intervention_type(), any()}},
+             %{Graph.PortRef.t() => {Quincunx.Document.History.Operation.intervention_type(), any()}},
              recipe_bundle :: [RecipeBundle.t()]}
   def compile_segment({seg_id, %Segment{} = seg}, cache) do
     {effective_graph, interventions} =

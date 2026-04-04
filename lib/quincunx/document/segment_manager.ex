@@ -1,4 +1,4 @@
-defmodule Quincunx.Editor.SegmentManager do
+defmodule Quincunx.Document.SegmentManager do
   @moduledoc """
   Owns the Segment collection, grouping, inter-segment dependencies, and dirty tracking.
 
@@ -9,10 +9,10 @@ defmodule Quincunx.Editor.SegmentManager do
   - Dispatch-order queries: topological ordering, group-aware batching
   """
 
-  alias Quincunx.Editor.Segment
-  # alias Quincunx.Editor.History
+  alias Quincunx.Document.Segment
+  # alias Quincunx.Document.History
   alias Quincunx.Topology.LiteGraph
-  alias Quincunx.Editor.{SegmentStore, TagIndexer}
+  alias Quincunx.Document.{SegmentStore, TagIndexer}
 
   @type tag :: atom() | String.t()
 

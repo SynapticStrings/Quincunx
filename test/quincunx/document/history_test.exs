@@ -1,11 +1,11 @@
-defmodule Quincunx.Editor.HistoryTest do
+defmodule Quincunx.Document.HistoryTest do
   use ExUnit.Case
 
   alias Quincunx.Topology.Graph.{Node, Edge}
-  import Quincunx.Editor.History
+  import Quincunx.Document.History
 
   describe "Operation" do
-    import Quincunx.Editor.History.Operation
+    import Quincunx.Document.History.Operation
 
     test "topology?/1" do
       ## YES!!

@@ -1,5 +1,5 @@
-defmodule Quincunx.Editor.SegmentStore do
-  alias Quincunx.Editor.Segment
+defmodule Quincunx.Document.SegmentStore do
+  alias Quincunx.Document.Segment
 
   @type t :: %{Segment.id() => Segment.t()}
 

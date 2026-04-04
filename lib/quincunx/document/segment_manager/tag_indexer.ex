@@ -1,5 +1,5 @@
-defmodule Quincunx.Editor.TagIndexer do
-  alias Quincunx.Editor.Segment
+defmodule Quincunx.Document.TagIndexer do
+  alias Quincunx.Document.Segment
 
   @type tag :: atom() | String.t()
   @type t :: %__MODULE__{

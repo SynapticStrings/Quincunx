@@ -7,7 +7,7 @@ defmodule Quincunx.Renderer.Planner do
   Tasks within a stage run in parallel; stages execute sequentially.
   """
   alias Quincunx.Compiler
-  alias Quincunx.Editor.Segment
+  alias Quincunx.Document.Segment
   alias Quincunx.Compiler.RecipeBundle
 
   defmodule Stage do

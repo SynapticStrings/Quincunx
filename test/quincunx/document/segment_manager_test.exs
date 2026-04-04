@@ -1,9 +1,9 @@
-defmodule Quincunx.Editor.SegmentManagerTest do
+defmodule Quincunx.Document.SegmentManagerTest do
   use ExUnit.Case
 
-  alias Quincunx.Editor.Segment
+  alias Quincunx.Document.Segment
   alias Quincunx.Topology.{Graph, LiteGraph}
-  import Quincunx.Editor.SegmentManager
+  import Quincunx.Document.SegmentManager
 
   # 辅助函数
   defp seg(id), do: Segment.new(id, Graph.new())
@@ -60,17 +60,17 @@ defmodule Quincunx.Editor.SegmentManagerTest do
       assert segment_ids(mgr) |> Enum.sort() == ["A", "B"]
     end
 
-    test "other scenario related to update(only in Quincunx.Editor.SegmentStore.update_segment/3)" do
+    test "other scenario related to update(only in Quincunx.Document.SegmentStore.update_segment/3)" do
       mgr =
         new() |> add_segment(seg("Foo")) |> unwrap_ok() |> add_segment(seg("Bar")) |> unwrap_ok()
 
       assert {:error, :segment_id_changed} ==
-               Quincunx.Editor.SegmentStore.update_segment(mgr.segments, "Foo", fn seg ->
+               Quincunx.Document.SegmentStore.update_segment(mgr.segments, "Foo", fn seg ->
                  %{seg | id: "Baz"}
                end)
 
       assert {:error, :segment_id_conflict} ==
-               Quincunx.Editor.SegmentStore.update_segment(mgr.segments, "Foo", fn seg ->
+               Quincunx.Document.SegmentStore.update_segment(mgr.segments, "Foo", fn seg ->
                  %{seg | id: "Bar"}
                end)
     end

@@ -1,4 +1,4 @@
-defmodule Quincunx.Editor.History do
+defmodule Quincunx.Document.History do
   @moduledoc """
   ...
   """

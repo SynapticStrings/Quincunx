@@ -1,14 +1,14 @@
-defmodule Quincunx.Editor.SegmentTest do
+defmodule Quincunx.Document.SegmentTest do
   use ExUnit.Case
 
-  import Quincunx.Editor.Segment
+  import Quincunx.Document.Segment
   alias Quincunx.Topology.Graph
-  alias Quincunx.Editor.History
+  alias Quincunx.Document.History
   import QuincunxTest.GraphFactory
 
   describe "Segment creation" do
     test "new/1" do
-      assert %Quincunx.Editor.Segment{} = new("SessionID", Graph.new())
+      assert %Quincunx.Document.Segment{} = new("SessionID", Graph.new())
     end
   end
 

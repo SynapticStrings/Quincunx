@@ -67,7 +67,7 @@ defmodule Quincunx.Compiler.CompilerTest do
 
     test "compile_to_recipes/1" do
       {:ok, [{"Foo", [bundle2, bundle1]}]} =
-        Quincunx.Editor.Segment.new("Foo", build_finin_and_fanout_dag(), %Cluster{
+        Quincunx.Document.Segment.new("Foo", build_finin_and_fanout_dag(), %Cluster{
           node_colors: %{step3: :red}
         })
         |> compile_to_recipes()

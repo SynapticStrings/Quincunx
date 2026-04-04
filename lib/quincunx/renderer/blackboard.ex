@@ -7,7 +7,7 @@ defmodule Quincunx.Renderer.Blackboard do
   results (outputs) and user-provided inputs, keyed by segment address.
   """
 
-  alias Quincunx.Editor.Segment
+  alias Quincunx.Document.Segment
 
   @type session_id :: term()
   @type addr :: {Segment.id(), Orchid.Step.io_key()}
