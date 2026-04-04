@@ -195,7 +195,10 @@ defmodule Quincunx.Editor.SegmentManager do
   # undo/2
   def undo(%__MODULE__{} = manager, segment_id) do
     with {:ok, new_segments} <-
-           SegmentStore.update_segment(manager.segments, segment_id, &Segment.undo/1) do
+           SegmentStore.update_segment(manager.segments, segment_id, fn seg ->
+             {new_seg, _op} = Segment.undo(seg)
+             new_seg
+           end) do
       op_with_dirty_propagation(manager, new_segments, segment_id)
     else
       _ -> manager
@@ -205,7 +208,10 @@ defmodule Quincunx.Editor.SegmentManager do
   # redo/2
   def redo(%__MODULE__{} = manager, segment_id) do
     with {:ok, new_segments} <-
-           SegmentStore.update_segment(manager.segments, segment_id, &Segment.redo/1) do
+           SegmentStore.update_segment(manager.segments, segment_id, fn seg ->
+             {new_seg, _op} = Segment.redo(seg)
+             new_seg
+           end) do
       op_with_dirty_propagation(manager, new_segments, segment_id)
     else
       _ -> manager
@@ -227,11 +233,19 @@ defmodule Quincunx.Editor.SegmentManager do
         query_by_tags(mgr, filter_tags, :intersection)
       end
 
-    if MapSet.size(initial_targets) == 0 do
+    affected_ids =
+      Enum.reduce(initial_targets, MapSet.new(), fn id, acc ->
+        MapSet.union(acc, LiteGraph.dependents(mgr.dep_graph, id))
+      end)
+
+    ready_targets =
+      MapSet.union(mgr.dirty, MapSet.union(affected_ids, MapSet.new(initial_targets)))
+
+    if MapSet.size(ready_targets) == 0 do
       {:ok, []}
     else
       required_set =
-        Enum.reduce(initial_targets, initial_targets, fn seg_id, acc ->
+        Enum.reduce(ready_targets, ready_targets, fn seg_id, acc ->
           upstreams = LiteGraph.dependencies(mgr.dep_graph, seg_id)
           dirty_upstreams = MapSet.intersection(upstreams, mgr.dirty)
           MapSet.union(acc, dirty_upstreams)
