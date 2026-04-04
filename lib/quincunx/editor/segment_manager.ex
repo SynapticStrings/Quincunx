@@ -101,7 +101,12 @@ defmodule Quincunx.Editor.SegmentManager do
 
   @spec divest_tag(t(), tag(), [Segment.id()] | Segment.id()) :: t()
   def divest_tag(%__MODULE__{} = manager, tag, seg_ids) do
-    %{manager | tag_indexer: TagIndexer.divest_tag(manager.tag_indexer, tag, seg_ids)}
+    clean_segments_ids =
+      seg_ids
+      |> List.wrap()
+      |> Enum.filter(&SegmentStore.exists?(manager.segments, &1))
+
+    %{manager | tag_indexer: TagIndexer.divest_tag(manager.tag_indexer, tag, clean_segments_ids)}
   end
 
   # query_tag

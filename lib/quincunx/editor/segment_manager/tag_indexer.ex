@@ -36,7 +36,7 @@ defmodule Quincunx.Editor.TagIndexer do
   ## Tag's CRUD
 
   def create_tag(%__MODULE__{} = indexer, tag) do
-    put_in(indexer, [Access.key!(:tag_index)], %{tag => MapSet.new()})
+    %{indexer | tag_index: Map.put(indexer.tag_index, tag, MapSet.new())}
   end
 
   def remove_tag(%__MODULE__{} = indexer, tag) do
@@ -97,6 +97,7 @@ defmodule Quincunx.Editor.TagIndexer do
   def query_by_tags(%__MODULE__{} = indexer, tags, mode) when is_list(tags) do
     new_tags =
       tags
+      |> List.wrap()
       |> Enum.map(&Map.get(indexer.tag_index, &1, MapSet.new()))
 
     case mode do
