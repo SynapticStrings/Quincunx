@@ -28,7 +28,13 @@ defmodule Quincunx.Editor.SegmentManager do
             dep_graph: LiteGraph.new(),
             dirty: MapSet.new()
 
-  def new, do: %__MODULE__{}
+  def new,
+    do: %__MODULE__{
+      segments: SegmentStore.new(),
+      tag_indexer: TagIndexer.new(),
+      dep_graph: LiteGraph.new(),
+      dirty: MapSet.new()
+    }
 
   ## Session CRUD
 
@@ -49,13 +55,14 @@ defmodule Quincunx.Editor.SegmentManager do
   @spec remove_segment(t(), Segment.id()) :: {:error, :not_exists} | {:ok, t()}
   def remove_segment(%__MODULE__{} = manager, seg_id) do
     with {:ok, new_segments} <- SegmentStore.remove_segment(manager.segments, seg_id) do
-      {:ok, %{
-        manager
-        | segments: new_segments,
-          tag_indexer: TagIndexer.remove_segment(manager.tag_indexer, seg_id),
-          dep_graph: LiteGraph.remove_node(manager.dep_graph, seg_id),
-          dirty: MapSet.delete(manager.dirty, seg_id)
-      }}
+      {:ok,
+       %{
+         manager
+         | segments: new_segments,
+           tag_indexer: TagIndexer.remove_segment(manager.tag_indexer, seg_id),
+           dep_graph: LiteGraph.remove_node(manager.dep_graph, seg_id),
+           dirty: MapSet.delete(manager.dirty, seg_id)
+       }}
     end
   end
 

@@ -23,7 +23,12 @@ defmodule Quincunx.Editor.SegmentManagerTest do
     end
 
     test "remove_segment/2" do
-      {:ok, mgr} = new() |> add_segment(Segment.new("Foo", Graph.new()))
+      {:ok, mgr} = new()
+        |> add_segment(Segment.new("Foo", Graph.new()))
+
+      # Used for increase coverage
+      mgr = apply_tag(mgr, "tg", "Foo")
+
       {:ok, mgr} = remove_segment(mgr, "Foo")
 
       # Segment Store.
