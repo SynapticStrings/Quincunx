@@ -3,7 +3,7 @@
 > [!IMPORTANT]
 >
 > To ensure development efficiency, documentation and comments will be in Chinese currently.
-> Once the API is comsolidate, I'll translate docs and comments into English.
+> Once the API was consolidate, I'll translate docs and comments into English.
 
 用于存在外部数据介入的增量生成任务的轻量级编排核心。
 
