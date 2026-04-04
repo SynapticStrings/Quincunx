@@ -36,11 +36,11 @@ defmodule Quincunx.Editor.TagIndexer do
   ## Tag's CRUD
 
   def create_tag(%__MODULE__{} = indexer, tag) do
-    put_in(indexer, [:tag_index], %{tag => MapSet.new()})
+    put_in(indexer, [Access.key!(:tag_index)], %{tag => MapSet.new()})
   end
 
   def remove_tag(%__MODULE__{} = indexer, tag) do
-    current_segment_index = Map.get(indexer.tag_index, tag)
+    current_segment_index = Map.get(indexer.tag_index, tag, MapSet.new([]))
 
     new_segment_index =
       if MapSet.size(current_segment_index) > 0 do
@@ -78,7 +78,9 @@ defmodule Quincunx.Editor.TagIndexer do
   end
 
   def divest_tag(%__MODULE__{} = indexer, tag, seg_ids) do
-    Enum.reduce(seg_ids, indexer, fn seg_id, acc ->
+    seg_ids
+    |> List.wrap()
+    |> Enum.reduce(indexer, fn seg_id, acc ->
       %{
         acc
         | segment_index:
